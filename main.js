@@ -1,13 +1,16 @@
-import '@shoelace-style/shoelace';
+import './style.css';
+import '@shoelace-style/shoelace/dist/themes/light.css';
+import '@shoelace-style/shoelace/dist/shoelace.js';
 import mapboxgl from 'mapbox-gl';
 
 mapboxgl.accessToken = 'pk.eyJ1Ijoibm92YWthbmQiLCJhIjoiY2p3OXFlYnYwMDF3eTQxcW5qenZ2eGNoNCJ9.PTZDfrwxfMd-hAwzZjwPTg';
 
 const map = new mapboxgl.Map({
+   projection: 'mercator',
   container: 'map',
   pitch: 62,
   bearing: -20,
-  style: 'mapbox://styles/mapbox/standard',
+  style: 'mapbox://styles/mapbox/streets-v12',
   hash: true,
   antialias: true,
   center: [37.6176, 55.7558],
