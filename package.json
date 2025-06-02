@@ -1,16 +1,22 @@
 {
   "name": "mapbox-tracking",
   "version": "1.0.0",
+  "description": "A web app for visualizing transport tracking on Mapbox with Shoelace UI.",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && git add dist && git commit -m 'Build for GitHub Pages' && git push"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "mapbox",
+    "tracking",
+    "vite",
+    "shoelace"
+  ],
+  "author": "novakand",
   "license": "ISC",
-  "description": "",
   "devDependencies": {
     "vite": "^6.3.5"
   },
