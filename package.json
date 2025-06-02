@@ -1,0 +1,21 @@
+{
+  "name": "mapbox-tracking",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "vite": "^6.3.5"
+  },
+  "dependencies": {
+    "@shoelace-style/shoelace": "^2.20.1",
+    "mapbox-gl": "^3.12.0"
+  }
+}
