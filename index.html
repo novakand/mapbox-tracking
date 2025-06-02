@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mapbox Tracking</title>
+
+    <!-- Mapbox CSS -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+    <script type="module" crossorigin src="/mapbox-tracking/assets/index-B7iWWV-c.js"></script>
+  </head>
+  <body>
+    <div id="app" style="display: flex; height: 100vh;">
+      <aside id="sidebar">
+        <h2>Transport</h2>
+        <sl-checkbox value="bus-1" checked>Bus 1</sl-checkbox>
+        <sl-checkbox value="bus-2">Bus 2</sl-checkbox>
+        <sl-checkbox value="bus-3">Bus 3</sl-checkbox>
+
+        <h3>Period</h3>
+        <sl-input type="date" label="Start Date"></sl-input>
+        <sl-input type="time" label="Start Time"></sl-input>
+        <sl-input type="date" label="End Date"></sl-input>
+        <sl-input type="time" label="End Time"></sl-input>
+
+        <h3>Controls</h3>
+        <sl-button id="play-btn">▶️ Play</sl-button>
+        <sl-button id="pause-btn">⏸ Pause</sl-button>
+        <sl-slider id="speed-slider" label="Speed" min="1" max="12" step="1" value="4"></sl-slider>
+      </aside>
+      <main id="map" style="flex-grow: 1;"></main>
+    </div>
+  </body>
+</html>
