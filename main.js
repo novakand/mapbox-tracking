@@ -5,7 +5,11 @@ mapboxgl.accessToken = 'pk.eyJ1Ijoibm92YWthbmQiLCJhIjoiY2p3OXFlYnYwMDF3eTQxcW5qe
 
 const map = new mapboxgl.Map({
   container: 'map',
-  style: 'mapbox://styles/mapbox/streets-v11',
+  pitch: 62,
+  bearing: -20,
+  style: 'mapbox://styles/mapbox/standard',
+  hash: true,
+  antialias: true,
   center: [37.6176, 55.7558],
   zoom: 12
 });
