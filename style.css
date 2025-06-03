@@ -1,12 +1,151 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  body {
-    @apply m-0;
-  }
-}
 body {
-  margin: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+aside {
+    width: 500px;
+    padding: 1rem;
+}
+
+main {
+    flex: 1;
+    position: relative;
+}
+
+.vehicle-card {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: #fff;
+}
+
+.vehicle-card label {
+    font-weight: 500;
+    display: block;
+    margin-top: 0.5rem;
+}
+
+.flatpickr-hidden-input {
+    display: none !important;
+}
+
+sl-input[type="datetime-local"]:empty {
+    display: none;
+}
+
+/* Или если у вас есть конкретный класс или ID для этого поля */
+#end-date-time-field {
+    display: none;
+}
+
+sl-progress-bar {
+  --track-color: transparent;
+  --indicator-color: #1764cc;
+}
+
+:root {
+  --sl-color-primary: #1764cc;
+  --sl-color-success: #22c55e;
+  --sl-color-primary-600: #1764cc;
+  --sl-color-danger: #ef4444;
+  --sl-color-warning: #facc15;
+}
+
+sl-drawer::part(overlay) {
+  display: none;
+}
+
+.drawer--bottom .drawer__panel {
+    box-shadow:none
+}
+
+#chartCanvas {
+  width: 100% !important;
+  height: 180px !important;
+}
+
+/* Основной контейнер карты */
+.c-map {
+    width: 100%;
+    height: 100%;
+   
+    flex-grow: 1;
+    overflow: hidden;
+    background: var(--surface-ground);
+}
+
+/* Горизонтальная панель инструментов */
+.c-map-toolbar-horizontal {
+    position: absolute;
+    z-index: 3;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 72px;
+    padding: 16px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    pointer-events: none;
+}
+
+.c-map-toolbar-horizontal.c-map-toolbar-horizontal__bottom {
+    top: auto;
+    bottom: 0;
+    padding: 16px 72px 16px 16px;
+}
+
+.c-map-toolbar-horizontal > *:not(.flex-fill),
+.c-map-toolbar-vertical > *:not(.flex-fill) {
+    pointer-events: auto;
+}
+
+/* Вертикальная панель инструментов */
+.c-map-toolbar-vertical {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    width: inherit;
+    height: 100%;
+    padding: 16px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+}
+
+/* Отступы */
+.c-map__x-offset {
+    margin: 0 16px;
+}
+
+.c-map__right-offset {
+    margin-right: 16px;
+}
+
+.c-map__left-offset {
+    margin-left: 16px;
+}
+
+.c-map__y-offset {
+    margin: 16px 0;
+}
+
+.c-map__top-offset {
+    margin-top: 16px;
+}
+
+.c-map__bottom-offset {
+    margin-bottom: 16px;
+}
+
+/* Гибкий заполнитель */
+.flex-fill {
+    flex: 1 1 auto !important;
+    pointer-events: none;
 }
