@@ -5,31 +5,199 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mapbox Tracking</title>
 
-    <!-- Mapbox CSS -->
+   
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
-    <script type="module" crossorigin src="/mapbox-tracking/assets/index-Bs7pTnuU.js"></script>
-    <link rel="stylesheet" crossorigin href="/mapbox-tracking/assets/index-gO7dVH1y.css">
+    <style type="text/css">
+    .preloader {
+      z-index: 9999;
+      transition: all 0.2s ease-in-out;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #fff;
+      width: 100%;
+    }
+
+    .preloader__dots {
+      padding: 0;
+      margin: 0;
+      list-style: none;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .dots-item {
+      display: inline-block;
+      height: 20px;
+      width: 20px;
+      margin-right: 10px;
+      background-color: #fc6e51;
+      border-radius: 50%;
+      -webkit-animation: loading 1.6s infinite;
+      -moz-animation: loading 1.6s infinite;
+      -o-animation: loading 1.6s infinite;
+      animation: loading 1.6s infinite;
+    }
+
+    .preloader .dots-item:nth-child(1) {
+      background: #1C2135;
+      -webkit-animation-delay: .1s;
+      -moz-animation-delay: .1s;
+      -o-animation-delay: .1s;
+      animation-delay: .1s;
+    }
+
+.preloader .dots-item:nth-child(1) {
+    background: #1764cc;
+    -webkit-animation-delay: .1s;
+    -moz-animation-delay: .1s;
+    -o-animation-delay: .1s;
+    animation-delay: .1s;
+  }
+
+  .preloader .dots-item:nth-child(2) {
+    background: #3386e0;
+    -webkit-animation-delay: .3s;
+    -moz-animation-delay: .3s;
+    -o-animation-delay: .3s;
+    animation-delay: .3s;
+  }
+
+  .preloader .dots-item:nth-child(3) {
+    background: #57a0ed;
+    -webkit-animation-delay: .5s;
+    -moz-animation-delay: .5s;
+    -o-animation-delay: .5s;
+    animation-delay: .5s;
+  }
+
+  .preloader .dots-item:nth-child(4) {
+    background: #a0c5f7;
+    -webkit-animation-delay: .7s;
+    -moz-animation-delay: .7s;
+    -o-animation-delay: .7s;
+    animation-delay: .7s;
+  }
+
+    @-webkit-keyframes loading {
+
+      0%,
+      100% {
+        -webkit-transform: scale(0.0);
+      }
+
+      50% {
+        -webkit-transform: scale(1.0);
+      }
+    }
+
+    @-moz-keyframes loading {
+
+      0%,
+      100% {
+        -moz-transform: scale(0.0);
+      }
+
+      50% {
+        -moz-transform: scale(1.0);
+      }
+    }
+
+    @-o-keyframes loading {
+
+      0%,
+      100% {
+        -o-transform: scale(0.0);
+      }
+
+      50% {
+        -o-transform: scale(1.0);
+      }
+    }
+
+    @keyframes loading {
+
+      0%,
+      100% {
+        transform: scale(0.0);
+      }
+
+      50% {
+        transform: scale(1.0);
+      }
+    }
+  </style>
+    <script type="module" crossorigin src="/mapbox-tracking/assets/index-DO90d18n.js"></script>
+    <link rel="stylesheet" crossorigin href="/mapbox-tracking/assets/index-D3Qbs14i.css">
   </head>
-  <body>
+  <body oncontextmenu="return false;">
     <div id="app" style="display: flex; height: 100vh;">
-      <aside id="sidebar" style="width: 20rem;">
-        <h2>Transport</h2>
-        <sl-checkbox value="bus-1" checked>Bus 1</sl-checkbox>
-        <sl-checkbox value="bus-2">Bus 2</sl-checkbox>
-        <sl-checkbox value="bus-3">Bus 3</sl-checkbox>
-
-        <h3>Period</h3>
-        <sl-input type="date" label="Start Date"></sl-input>
-        <sl-input type="time" label="Start Time"></sl-input>
-        <sl-input type="date" label="End Date"></sl-input>
-        <sl-input type="time" label="End Time"></sl-input>
-
-        <h3>Controls</h3>
-        <sl-button id="play-btn">▶️ Play</sl-button>
-        <sl-button id="pause-btn">⏸ Pause</sl-button>
-        <sl-slider id="speed-slider" label="Speed" min="1" max="12" step="1" value="4"></sl-slider>
-      </aside>
-      <main id="map" style="flex-grow: 1;"></main>
+      <div class="preloader">
+      <ul class="preloader__dots">
+        <li class="dots-item"></li>
+        <li class="dots-item"></li>
+        <li class="dots-item"></li>
+        <li class="dots-item"></li>
+      </ul>
     </div>
+    <sl-drawer label="Transport" placement="start" contained class="drawer-contained" style="--size: 35%;" open>
+   
+     <div id="vehicle-list" class="flex flex-col gap-4">
+    <!-- Карточки транспорта динамически -->
+  </div>
+    <sl-button slot="footer" variant="primary">Close</sl-button>
+  </sl-drawer>
+ 
+      <main id="map" class="c-map">
+        
+        <sl-progress-bar indeterminate class="absolute t-0 w-full z-10"  value="50" style="--height: 4px; display: none !important;"></sl-progress-bar>
+
+        <sl-drawer id="chartDrawer" label="Данные транспорта" placement="bottom" contained class="drawer-contained" style="--size: 10%;" open>
+   
+     <div id="vehicle-list" class="flex flex-col gap-4">
+    <!-- Карточки транспорта динамически -->
+  </div>
+    <sl-button slot="footer" variant="primary">Close</sl-button>
+  </sl-drawer>
+     <!-- <div id="chartDrawer" class="fixed bottom-0 w-full bg-white p-4 z-10">
+  <h2>Данные транспорта</h2>
+
+  <div id="chartEmptyMessage" class="hidden items-center justify-center h-64 text-gray-500 text-lg">
+    Нет данных для отображения
+  </div>
+
+  <canvas id="chartCanvas" class="w-full h-64"></canvas>
+</div> -->
+
+<div class="c-map-toolbar-vertical">
+          <div class="flex-fill"></div>
+         <div>ddd</div>
+          <div class="c-map__y-offset"></div>
+         <div>ddd</div>
+          <div class="flex-fill"></div>
+
+        </div>
+
+         <div class="c-map-toolbar-vertical !p-4">
+        <div class="flex-fill"></div>
+        <div class="c-map__y-offset"></div>
+        <div>ddd</div>
+        <div class="c-map__y-offset"></div>
+       <div>ddd</div>
+        <div class="c-map__y-offset"></div>
+       <div>ddd</div>
+        <div class="flex-fill"></div>
+      </main>
+    </div>
+
+  
+    <!-- <sl-drawer id="chartDrawer" placement="bottom" class="w-full !left-[500px]" style="--size: 20vh;">
+    <h2 slot="label">Данные транспорта</h2>
+    <canvas id="chartCanvas" width="800" height="400" class="w-full h-64"></canvas>
+  </sl-drawer> -->
   </body>
 </html>
