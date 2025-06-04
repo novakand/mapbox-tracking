@@ -3,7 +3,7 @@ import { vehicleTrackService } from './../vehicle-render/services/vehicle-track.
 
 import { Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend } from 'chart.js';
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
-import { debounceTime, distinctUntilChanged, Subject, switchMap, takeUntil,filter,map } from "rxjs";
+import { delay, distinctUntilChanged, Subject, switchMap, takeUntil, filter, map } from "rxjs";
 
 export class ChartPanel {
     constructor(mapService) {
@@ -39,26 +39,27 @@ export class ChartPanel {
         );
     }
 
-_setupSubscription() {
-    vehicleTrackService.vehicleTrack$
-        .pipe(
-            filter(payload => payload && payload.vehicleId && payload.data),
-            map(payload => this._prepareChartData(payload.data.features)),
-            distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr))
-        )
-        .subscribe((chartData) => {
-            if (!chartData.length) {
-                this.showEmptyMessage();
-                this._destroyChart();
-                return;
-            }
+    _setupSubscription() {
+        vehicleTrackService.vehicleTrack$
+            .pipe(
+                delay(300),
+                filter(payload => payload && payload.vehicleId && payload.data),
+                map(payload => this._prepareChartData(payload.data.features)),
+                distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr))
+            )
+            .subscribe((chartData) => {
+                if (!chartData.length) {
+                    this.showEmptyMessage();
+                    this._destroyChart();
+                    return;
+                }
 
-            this.fullChartData = chartData;
-            this.playIndex = 0;
-            this.hideEmptyMessage();
-            this._renderChart(this.fullChartData);
-        });
-}
+                this.fullChartData = chartData;
+                this.playIndex = 0;
+                this.hideEmptyMessage();
+                this._renderChart(this.fullChartData);
+            });
+    }
 
     _play() {
         if (!this.fullChartData || this.fullChartData.length === 0) return;
@@ -109,20 +110,18 @@ _setupSubscription() {
             this.chartInstance.destroy();
         }
 
-       const wrapper = this.chartCanvas.parentElement;
-const ctx = this.chartCanvas.getContext('2d');
-const dpr = window.devicePixelRatio || 1;
-const width = wrapper.clientWidth;
-const height = 180; // или rect.height, если нужен расчёт по DOM
+        const wrapper = this.chartCanvas.parentElement;
+        const ctx = this.chartCanvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const width = wrapper.clientWidth;
+        const height = 180;
 
-// Физические пиксели для рендеринга
-this.chartCanvas.width = width * dpr;
-this.chartCanvas.height = height * dpr;
+        this.chartCanvas.width = width * dpr;
+        this.chartCanvas.height = height * dpr;
 
-// CSS-пиксели для отображения (в браузере)
-this.chartCanvas.style.width = `${width}px`;
-this.chartCanvas.style.height = `${height}px`;
-       
+        this.chartCanvas.style.width = `${width}px`;
+        this.chartCanvas.style.height = `${height}px`;
+
         ctx.scale(dpr, dpr);
 
         const labels = data.map(d => d.timestamp.toLocaleTimeString());
@@ -182,13 +181,12 @@ this.chartCanvas.style.height = `${height}px`;
                     },
                     {
                         label: 'Статус waterfall',
-                        data: altitudes,  // Для позиционирования точек по оси Y
+                        data: altitudes, 
                         pointBackgroundColor: waterfallColors,
                         pointRadius: 5,
                         showLine: false,
                         order: 98
                     },
-                    // Переносим Текущую позицию В КОНЕЦ
                     {
                         label: 'Текущая позиция',
                         data: new Array(data.length).fill(null),

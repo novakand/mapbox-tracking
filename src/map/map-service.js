@@ -2,7 +2,7 @@ import mapboxgl from 'mapbox-gl';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { vehicleTrackService } from '../components/vehicle-render/services/vehicle-track.service';
 import { loadProgressService } from './../services/load-progress.service.js';
-import { Subject, takeUntil, debounceTime,finalize, distinctUntilChanged, switchMap, filter, map, tap } from 'rxjs';
+import { Subject, takeUntil, delay,finalize, distinctUntilChanged, switchMap, filter, map, tap } from 'rxjs';
 import { ScenegraphLayer } from '@deck.gl/mesh-layers';
 
 export class MapService {
@@ -230,6 +230,7 @@ export class MapService {
   _setupTrackSubscription() {
     vehicleTrackService.vehicleTrack$
       .pipe(
+        delay(300),
         takeUntil(this.destroy$),
         filter(payload => payload && payload.vehicleId && payload.data),
         tap(payload => {
