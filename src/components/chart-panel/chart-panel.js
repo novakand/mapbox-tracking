@@ -109,17 +109,19 @@ _setupSubscription() {
             this.chartInstance.destroy();
         }
 
-        const ctx = this.chartCanvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
-        const rect = this.chartCanvas.getBoundingClientRect();
+       const wrapper = this.chartCanvas.parentElement;
+const ctx = this.chartCanvas.getContext('2d');
+const dpr = window.devicePixelRatio || 1;
+const width = wrapper.clientWidth;
+const height = 180; // или rect.height, если нужен расчёт по DOM
 
-        // Устанавливаем атрибуты width/height
-        this.chartCanvas.width = Math.floor(rect.width * dpr);
-        this.chartCanvas.height = Math.floor(rect.height * dpr);
+// Физические пиксели для рендеринга
+this.chartCanvas.width = width * dpr;
+this.chartCanvas.height = height * dpr;
 
-        // Устанавливаем стили для сохранения физического размера
-        this.chartCanvas.style.width = `${rect.width}px`;
-        this.chartCanvas.style.height = `${rect.height}px`;
+// CSS-пиксели для отображения (в браузере)
+this.chartCanvas.style.width = `${width}px`;
+this.chartCanvas.style.height = `${height}px`;
        
         ctx.scale(dpr, dpr);
 

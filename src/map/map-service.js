@@ -2,7 +2,7 @@ import mapboxgl from 'mapbox-gl';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { vehicleTrackService } from '../components/vehicle-render/services/vehicle-track.service';
 import { loadProgressService } from './../services/load-progress.service.js';
-import { Subject, takeUntil, debounceTime, distinctUntilChanged, switchMap, filter, map, tap } from 'rxjs';
+import { Subject, takeUntil, debounceTime,finalize, distinctUntilChanged, switchMap, filter, map, tap } from 'rxjs';
 import { ScenegraphLayer } from '@deck.gl/mesh-layers';
 
 export class MapService {
@@ -13,8 +13,17 @@ export class MapService {
     this.destroy$ = new Subject();
     this.trackData = [];
     this.playIndex = 0;
+    this.didFitBoundsInRepeat = false;
 
     mapboxgl.accessToken = 'pk.eyJ1Ijoibm92YWthbmQiLCJhIjoiY2p3OXFlYnYwMDF3eTQxcW5qenZ2eGNoNCJ9.PTZDfrwxfMd-hAwzZjwPTg';
+    this.defaultLayerOrder = [
+      'track-points-full-layer',
+      'heading-lines-layer',
+      'track-path-layer',
+      'track-points-labels',
+      'track-points-circles',
+    ];
+    this.layerOrder = [...this.defaultLayerOrder];
   }
 
   initMap() {
@@ -38,11 +47,19 @@ export class MapService {
       this._setupTrackSubscription();
 
 
+      this.modelPopup = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false
+      });
+
+
       this.routeVisible = true;
-      this.headingVisible = true;
+      this.headingVisible = false;
+      this.pointsVisible = false;
 
       this.toggleRouteSwitch = document.getElementById('toggleRoute');
       this.toggleHeadingSwitch = document.getElementById('toggleHeading');
+      this.togglePointsSwitch = document.getElementById('togglePoint');
 
       this.toggleRouteSwitch.addEventListener('sl-change', (e) => {
         this.routeVisible = e.target.checked;
@@ -53,9 +70,107 @@ export class MapService {
         this.headingVisible = e.target.checked;
         this._updateLayerVisibility();
       });
+
+
+      this.togglePointsSwitch.addEventListener('sl-change', (e) => {
+        this.pointsVisible = e.target.checked;
+        this._updateLayerVisibility();
+      });
     });
   }
 
+  setLayerOrder(newOrder) {
+    if (!Array.isArray(newOrder)) {
+      console.error('Layer order must be an array');
+      return;
+    }
+
+    const missingLayers = this.defaultLayerOrder.filter(id => !newOrder.includes(id));
+    if (missingLayers.length > 0) {
+      console.error(`Missing layers in new order: ${missingLayers.join(', ')}`);
+      return;
+    }
+
+    this.layerOrder = newOrder;
+
+    if (this.map) {
+      this._applyLayerOrder();
+    }
+  }
+
+
+  getLayerOrder() {
+    return [...this.layerOrder];
+  }
+
+  resetLayerOrder() {
+    this.layerOrder = [...this.defaultLayerOrder];
+    if (this.map) {
+      this._applyLayerOrder();
+    }
+  }
+
+  safeAddLayer(map, layerConfig, beforeId) {
+    try {
+      if (beforeId && map.getLayer(beforeId)) {
+        map.addLayer(layerConfig, beforeId);
+      } else {
+        map.addLayer(layerConfig);
+      }
+
+      if (layerConfig.id === 'track-points-full-layer' && !this._hoverListenersAttached) {
+        this._hoverListenersAttached = true;
+
+        const popup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false
+        });
+        map.on('mouseenter', 'track-points-full-layer', (e) => {
+
+          map.getCanvas().style.cursor = 'pointer';
+
+          const coordinates = e.features[0].geometry.coordinates.slice();
+          const props = e.features[0].properties;
+          const content = Object.entries(props)
+            .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+            .join('<br>');
+
+          if (['mercator', 'equirectangular'].includes(map.getProjection().name)) {
+            while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+              coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+            }
+          }
+
+          popup.setLngLat(coordinates).setHTML(content).addTo(map);
+        });
+
+        map.on('mouseleave', 'track-points-full-layer', () => {
+          map.getCanvas().style.cursor = '';
+          popup.remove();
+        });
+      }
+    } catch (err) {
+      console.warn(`Failed to add layer ${layerConfig.id}`, err);
+    }
+  }
+
+
+  _applyLayerOrder(order) {
+    const existingLayers = this.layerOrder.filter(id => this.map.getLayer(id));
+
+    for (let i = existingLayers.length - 1; i > 0; i--) {
+      const currentLayer = existingLayers[i];
+      const layerBelow = existingLayers[i - 1];
+
+      try {
+        if (this.map.getLayer(currentLayer) && this.map.getLayer(layerBelow)) {
+          this.map.moveLayer(currentLayer, layerBelow);
+        }
+      } catch (err) {
+        console.warn(`Cannot move layer ${currentLayer} before ${layerBelow}`, err);
+      }
+    }
+  }
   _updateLayerVisibility() {
     if (this.map.getLayer('track-path-layer')) {
       this.map.setLayoutProperty(
@@ -72,30 +187,42 @@ export class MapService {
         this.headingVisible ? 'visible' : 'none'
       );
     }
+    if (this.map.getLayer('track-points-full-layer')) {
+      this.map.setLayoutProperty(
+        'track-points-full-layer',
+        'visibility',
+        this.pointsVisible ? 'visible' : 'none'
+      );
+    }
   }
 
-
   _clearPreviousLayersAndMarkers() {
-    const layersUsingTrackPoints = ['track-points-circles', 'track-points-labels'];
+    const layersUsingTrackPoints = [
+      'track-points-circles',
+      'track-points-labels',
+      'track-points-full-layer'
+    ];
     const layers = ['track-path-layer', 'heading-lines-layer', ...layersUsingTrackPoints];
-    const sources = ['track-path', 'heading-lines', 'track-points'];
+    const sources = [
+      'track-path',
+      'heading-lines',
+      'track-points',
+      'track-points-full'
+    ];
 
-    // Удаляем все слои
+
     for (const layerId of layers) {
       if (this.map.getLayer(layerId)) {
         this.map.removeLayer(layerId);
       }
     }
 
-    // Удаляем все источники (после удаления слоев)
     for (const sourceId of sources) {
       if (this.map.getSource(sourceId)) {
         this.map.removeSource(sourceId);
       }
     }
 
-
-    // Очистка deck.gl
     this.deckOverlay.setProps({ layers: [] });
   }
 
@@ -103,18 +230,26 @@ export class MapService {
   _setupTrackSubscription() {
     vehicleTrackService.vehicleTrack$
       .pipe(
-        tap(() => loadProgressService.hide()),
         takeUntil(this.destroy$),
         filter(payload => payload && payload.vehicleId && payload.data),
+        tap(payload => {
+          if (payload.isRepeat) {
+            this.shouldFitBounds = !this.didFitBoundsInRepeat;
+            this.didFitBoundsInRepeat = true;
+          } else {
+            this.shouldFitBounds = true;
+            this.didFitBoundsInRepeat = false;
+          }
+        }),
         map(payload => payload.data.features),
-        distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr))
+        distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
+        tap(() => loadProgressService.hide(9999)) 
       )
       .subscribe(features => {
-        this._clearPreviousLayersAndMarkers();
-
         if (!features || features.length === 0) {
           this.trackData = [];
           this.deckOverlay.setProps({ layers: [] });
+          this._clearPreviousLayersAndMarkers();
           return;
         }
 
@@ -122,7 +257,6 @@ export class MapService {
           const [lng, lat] = f.geometry.coordinates;
           const current = [lng, lat];
           const directFromData = f.properties.direct_angle;
-
           let direct_angle = null;
 
           if (directFromData != null && !isNaN(directFromData)) {
@@ -137,9 +271,12 @@ export class MapService {
           return {
             coordinates: current,
             timestamp: f.properties.timestamp,
-            direct_angle
+            direct_angle,
+            ...f.properties,
           };
         });
+
+        this.playIndex = 0;
 
         if (this.trackData.length >= 2) {
           const start = this.trackData[0].coordinates;
@@ -147,7 +284,20 @@ export class MapService {
           this._updateRouteMarkers(start, end);
         }
 
-        this.playIndex = 0;
+
+        const geojson = {
+          type: 'FeatureCollection',
+          features: this.trackData.map((d, i) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: d.coordinates
+            },
+            properties: {
+              ...d,
+            }
+          }))
+        };
 
         const pathData = {
           type: 'Feature',
@@ -167,33 +317,13 @@ export class MapService {
             id: 'track-path-layer',
             type: 'line',
             source: 'track-path',
-            layout: {
-              'line-cap': 'round',
-              'line-join': 'round'
-            },
-            paint: {
-              'line-color': '#007bff',
-              'line-width': 4
-            }
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-color': '#007bff', 'line-width': 4 }
           });
         } else {
           this.map.getSource('track-path').setData(pathData);
         }
 
-        const modelLayer = new ScenegraphLayer({
-          id: 'model-layer',
-          data: [this.trackData[0]],
-          scenegraph: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/scenegraph-layer/airplane.glb',
-          getPosition: d => [d.coordinates[0], d.coordinates[1], 0],
-          getOrientation: d => [0, -d.direct_angle, 90],
-          getColor: d => (d.suspicious ? [255, 0, 0] : [255, 255, 255]),
-          sizeScale: 10,
-          pickable: true,
-          getTooltip: ({ object }) => this._getTooltip(object),
-          sizeMinPixels: 2,
-          sizeMaxPixels: 2,
-          _animations: { '*': { speed: 1 } }
-        });
 
         const headingFeatures = this.trackData
           .filter(d => d.direct_angle != null)
@@ -206,10 +336,7 @@ export class MapService {
               type: 'Feature',
               geometry: {
                 type: 'LineString',
-                coordinates: [
-                  [lng, lat],
-                  [lng + dx, lat + dy]
-                ]
+                coordinates: [[lng, lat], [lng + dx, lat + dy]]
               },
               properties: {
                 suspicious: d.suspicious
@@ -221,6 +348,7 @@ export class MapService {
           type: 'FeatureCollection',
           features: headingFeatures
         };
+
 
         if (!this.map.getSource('heading-lines')) {
           this.map.addSource('heading-lines', {
@@ -246,15 +374,77 @@ export class MapService {
           this.map.getSource('heading-lines').setData(headingData);
         }
 
-        this.deckOverlay.setProps({ layers: [modelLayer] });
 
-        const bounds = this.trackData.reduce(
-          (b, d) => b.extend([d.coordinates[0], d.coordinates[1]]),
-          new mapboxgl.LngLatBounds(this.trackData[0].coordinates, this.trackData[0].coordinates)
-        );
-        this.map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 1000 });
+        if (!this.map.getSource('track-points-full')) {
+          this.map.addSource('track-points-full', {
+            type: 'geojson',
+            data: geojson
+          });
+
+          this.safeAddLayer(this.map, {
+            id: 'track-points-full-layer',
+            type: 'circle',
+            source: 'track-points-full',
+            paint: {
+              'circle-radius': 5,
+              'circle-color': '#ffffff',
+              'circle-stroke-width': 1,
+              'circle-stroke-color': '#007bff'
+            }
+          });
+        } else {
+          this.map.getSource('track-points-full').setData(geojson);
+        }
+
+        this._updateLayerVisibility();
+        this._applyLayerOrder(this.layerOrder);
+
+        const modelLayer = new ScenegraphLayer({
+          id: 'model-layer',
+          data: [this.trackData[0]],
+          scenegraph: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/scenegraph-layer/airplane.glb',
+          getPosition: d => [d.coordinates[0], d.coordinates[1], 0],
+          getOrientation: d => [0, -d.direct_angle, 90],
+          getColor: d => (d.suspicious ? [255, 0, 0] : [255, 255, 255]),
+          pickable: true,
+          getTooltip: ({ object }) => this._getTooltip(object),
+          sizeScale: 10,
+          sizeMinPixels: 0.5,
+          sizeMaxPixels: 1.8,
+          _lighting: 'pbr',
+          _animations: { '*': { speed: 1 } }
+        });
+
+        this.deckOverlay.setProps({
+          layers: [modelLayer],
+          onHover: info => {
+            if (info.object) {
+              const tooltipText = this._getTooltip(info.object)?.text || '';
+              const [lng, lat] = info.object.coordinates;
+
+              this.modelPopup
+                .setLngLat([lng, lat])
+                .setHTML(`
+  <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
+`)
+                .addTo(this.map);
+            } else {
+              this.modelPopup.remove();
+            }
+          },
+          getTooltip: () => null
+        });
+
+        if (this.shouldFitBounds && this.trackData.length >= 2) {
+          const bounds = this.trackData.reduce(
+            (b, d) => b.extend(d.coordinates),
+            new mapboxgl.LngLatBounds(this.trackData[0].coordinates, this.trackData[0].coordinates)
+          );
+          this.map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 1000 });
+        }
       });
   }
+
 
 
   _getTooltip(object) {
@@ -322,24 +512,47 @@ export class MapService {
     } else {
       this.map.getSource('heading-lines').setData(headingData);
     }
-
+    const speed = point?.speed ?? 0;
     const modelLayer = new ScenegraphLayer({
       id: 'model-layer',
       data: [point],
       scenegraph: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/scenegraph-layer/airplane.glb',
-      getPosition: d => [d.coordinates[0], d.coordinates[1], 0], // Без высоты (плоская карта)
-
+      getPosition: d => [d.coordinates[0], d.coordinates[1], 0],
       getOrientation: d => [0, -d.direct_angle, 90],
-      sizeScale: 10,
-      sizeScale: 10,
       pickable: true,
       getTooltip: ({ object }) => this._getTooltip(object),
-      sizeMinPixels: 2,
-      sizeMaxPixels: 2,
-      _animations: { '*': { speed: 1 } }
+      sizeScale: Math.max(speed / 20, 1),
+      getColor: d =>
+        d.speed == null ? [180, 180, 180] :         // Gray     — Unknown speed
+          d.speed < 1 ? [255, 50, 50] :               // Red      — Nearly stopped
+            d.speed < 5 ? [255, 150, 100] :             // Orange   — Slow
+              d.speed < 20 ? [100, 255, 100] :            // Green    — Normal speed
+                [50, 200, 255],
+      sizeMinPixels: 0.5,
+      sizeMaxPixels: 1.8,
+      _lighting: 'pbr',
+      _animations: { '*': { speed: Math.max(speed / 20, 0.2) } }
     });
 
-    this.deckOverlay.setProps({ layers: [modelLayer], getTooltip: ({ object }) => this._getTooltip(object) });
+    this.deckOverlay.setProps({
+      layers: [modelLayer],
+      onHover: info => {
+        if (info.object) {
+          const tooltipText = this._getTooltip(info.object)?.text || '';
+          const [lng, lat] = info.object.coordinates;
+
+          this.modelPopup
+            .setLngLat([lng, lat])
+            .setHTML(`
+  <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
+`)
+            .addTo(this.map);
+        } else {
+          this.modelPopup.remove();
+        }
+      },
+      getTooltip: () => null
+    });
   }
 
 
@@ -412,9 +625,6 @@ export class MapService {
 
   }
 
-
-
-
   destroy() {
     this.destroy$.next();
     this.destroy$.complete();
@@ -424,9 +634,4 @@ export class MapService {
     }
   }
 }
-
-
-
-
-
 

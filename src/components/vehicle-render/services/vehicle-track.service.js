@@ -45,14 +45,14 @@ export class VehicleService extends HttpClientService {
     ).pipe(
       map(response => response),
       catchError(error => {
-        console.error('Ошибка загрузки трека:', error);
+        console.error('Error loading track:', error);
         return of(null);
       }),
       retry({ delay: 10000 }),
       isRepeat ? repeat({ delay: 10000 }) : identity,
-      tap(data => this.vehicleTrack$.next({ vehicleId, data }),
+      tap(data => this.vehicleTrack$.next({ vehicleId, data,isRepeat }),
       )
     );
   }
 }
-export const vehicleTrackService = new VehicleService('http://artemis.itmontag.keenetic.pro:4242', '27afb877422133945a0f5241bc649145bd928fa17ca239d23b942850a770cd06');
+export const vehicleTrackService = new VehicleService('https://artemis.itmontag.keenetic.pro:4242', '27afb877422133945a0f5241bc649145bd928fa17ca239d23b942850a770cd06');

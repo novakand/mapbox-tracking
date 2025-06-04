@@ -43,34 +43,34 @@ sl-input[type="datetime-local"]:empty {
 }
 
 sl-progress-bar {
-  --track-color: transparent;
-  --indicator-color: #1764cc;
+    --track-color: transparent;
+    --indicator-color: #1764cc;
 }
 
 :root {
-  --sl-color-primary: #1764cc;
-  --sl-color-success: #22c55e;
-  --sl-color-primary-600: #1764cc;
-  --sl-color-danger: #ef4444;
-  --sl-color-warning: #facc15;
+    --sl-color-primary: #1764cc;
+    --sl-color-success: #22c55e;
+    --sl-color-primary-600: #1764cc;
+    --sl-color-danger: #ef4444;
+    --sl-color-warning: #facc15;
 }
 
 sl-drawer::part(overlay) {
-  display: none;
+    display: none;
 }
 
 .drawer--bottom .drawer__panel {
-    box-shadow:none
+    box-shadow: none
 }
 
 #chartCanvas {
-  width: 100% !important;
-  height: 180px !important;
+    width: 100% !important;
+    height: 180px !important;
+    padding-right: 500px;
 }
 
-/* Основной контейнер карты */
 .c-map {
-   width: auto;
+    width: auto;
     height: 100%;
     position: relative;
     overflow: hidden;
@@ -81,7 +81,6 @@ sl-drawer::part(overlay) {
     top: 0;
 }
 
-/* Горизонтальная панель инструментов */
 .c-map-toolbar-horizontal {
     position: absolute;
     z-index: 3;
@@ -102,12 +101,11 @@ sl-drawer::part(overlay) {
     padding: 16px 72px 16px 16px;
 }
 
-.c-map-toolbar-horizontal > *:not(.flex-fill),
-.c-map-toolbar-vertical > *:not(.flex-fill) {
+.c-map-toolbar-horizontal>*:not(.flex-fill),
+.c-map-toolbar-vertical>*:not(.flex-fill) {
     pointer-events: auto;
 }
 
-/* Вертикальная панель инструментов */
 .c-map-toolbar-vertical {
     position: absolute;
     z-index: 2;
@@ -122,7 +120,6 @@ sl-drawer::part(overlay) {
     pointer-events: none;
 }
 
-/* Отступы */
 .c-map__x-offset {
     margin: 0 16px;
 }
@@ -147,9 +144,11 @@ sl-drawer::part(overlay) {
     margin-bottom: 16px;
 }
 
-/* Гибкий заполнитель */
 .flex-fill {
     flex: 1 1 auto !important;
     pointer-events: none;
 }
 
+.mapboxgl-popup {
+    max-width: 440px !important;
+}

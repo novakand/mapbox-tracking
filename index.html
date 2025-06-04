@@ -148,10 +148,10 @@
   </style>
 </head>
 
-<body>
+<body oncontextmenu="return false;">
   <div
     id="app"
-    style="display: flex; height: 100vh; width: 100vw; overflow: hidden;"
+    style="display: flex; height: 100vh; width: 100vw;"
   >
     <div class="preloader">
       <ul class="preloader__dots">
@@ -184,7 +184,7 @@
         ></sl-progress-bar>
 
 
-      
+
 
         <div class="c-map-toolbar-vertical">
           <div class="flex-fill"></div>
@@ -205,52 +205,58 @@
 
           <div class="flex-fill"></div>
       </main>
+      <div
+        id="chartDrawer"
+        class="fixed bottom-0 w-full bg-white p-4 z-10"
+      >
         <div
-          id="chartDrawer"
-          class="fixed bottom-0 w-full bg-white p-4 z-10"
+          id="chartControls"
+          class="flex items-center gap-2 p-2"
         >
-          <div
-            id="chartControls"
-            class="flex items-center gap-2 p-2"
+          <sl-button
+            id="playButton"
+            variant="success"
           >
-            <sl-button id="playButton" variant="success">
-  <sl-icon name="play-circle"></sl-icon> Старт
-</sl-button>
+            <sl-icon name="play-circle"></sl-icon> Старт
+          </sl-button>
 
-            <sl-button
-              id="stopButton"
-              variant="danger"
-            ><sl-icon name="stop-circle"></sl-icon> Стоп</sl-button>
-            <sl-button
-              class="speedButton"
-              data-speed="1"
-            >x1</sl-button>
-            <sl-button
-              class="speedButton"
-              data-speed="4"
-            >x4</sl-button>
-            <sl-button
-              class="speedButton"
-              data-speed="12"
-            >x12</sl-button>
+          <sl-button
+            id="stopButton"
+            variant="danger"
+          ><sl-icon name="stop-circle"></sl-icon> Стоп</sl-button>
+          <sl-button
+            class="speedButton"
+            data-speed="1"
+          >x1</sl-button>
+          <sl-button
+            class="speedButton"
+            data-speed="4"
+          >x4</sl-button>
+          <sl-button
+            class="speedButton"
+            data-speed="12"
+          >x12</sl-button>
 
-            <sl-switch id="toggleRoute" checked>Маршрут</sl-switch>
-
-            <sl-switch id="toggleHeading" checked>Направляющие</sl-switch>
-          </div>
-          <div
-            id="chartEmptyMessage"
-            class="hidden items-center justify-center h-64 text-gray-500 text-lg"
-          >
-            Нет данных для отображения
-          </div>
-<div style="overflow-x: auto; width: 100%;">
+          <sl-switch
+            id="toggleRoute"
+            checked
+          >Маршрут</sl-switch>
+          <sl-switch id="togglePoint">Промежуточные точки</sl-switch>
+          <sl-switch id="toggleHeading">Направляющие</sl-switch>
+        </div>
+        <div
+          id="chartEmptyMessage"
+          class="hidden items-center justify-center h-64 text-gray-500 text-lg"
+        >
+          Нет данных для отображения
+        </div>
+        <div style="overflow-x: auto; width: 100%;">
           <canvas
             id="chartCanvas"
-            class="w-full h-64"
+            class=" block h-64"
           ></canvas>
-          </div>
         </div>
+      </div>
     </div>
   </div>
 </body>
