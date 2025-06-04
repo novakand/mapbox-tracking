@@ -70,12 +70,15 @@ sl-drawer::part(overlay) {
 
 /* Основной контейнер карты */
 .c-map {
-    width: 100%;
+   width: auto;
     height: 100%;
-   
-    flex-grow: 1;
+    position: relative;
     overflow: hidden;
-    background: var(--surface-ground);
+    bottom: 0;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
 }
 
 /* Горизонтальная панель инструментов */
@@ -149,3 +152,4 @@ sl-drawer::part(overlay) {
     flex: 1 1 auto !important;
     pointer-events: none;
 }
+

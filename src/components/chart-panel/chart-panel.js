@@ -1,43 +1,96 @@
-// import Chart from 'chart.js/auto';
+
 import { vehicleTrackService } from './../vehicle-render/services/vehicle-track.service'; // твой сервис
 
 import { Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend } from 'chart.js';
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
+import { debounceTime, distinctUntilChanged, Subject, switchMap, takeUntil,filter,map } from "rxjs";
 
 export class ChartPanel {
-    constructor() {
+    constructor(mapService) {
+        this.mapService = mapService;
         this.chartDrawer = document.querySelector('#chartDrawer');
         this.chartCanvas = this.chartDrawer.querySelector('#chartCanvas');
-         this.chartEmptyMessage = this.chartDrawer.querySelector('#chartEmptyMessage');
+        this.chartEmptyMessage = this.chartDrawer.querySelector('#chartEmptyMessage');
         this.chartInstance = null;
+        this.playInterval = null;
+        this.playIndex = 0;
+        this.speed = 1;
 
         if (!this.chartDrawer || !this.chartCanvas) {
             console.error('ChartPanel: Не найден sl-drawer или canvas!');
             return;
         }
 
+        this._setupControls();
         this._setupSubscription();
     }
 
-    _setupSubscription() {
-        vehicleTrackService.vehicleTrack$.subscribe((payload) => {
-            if (!payload || !payload.vehicleId || !payload.data) {
-                return;
-            }
+    _setupControls() {
+        this.playButton = this.chartDrawer.querySelector('#playButton');
+        this.stopButton = this.chartDrawer.querySelector('#stopButton');
+        this.speedButtons = this.chartDrawer.querySelectorAll('.speedButton');
 
-            const { data } = payload;
+        this.playButton.addEventListener('click', () => this._play());
+        this.stopButton.addEventListener('click', () => this._stop());
+        this.speedButtons.forEach(btn =>
+            btn.addEventListener('click', (e) => {
+                this.speed = parseInt(e.target.dataset.speed, 10) || 1;
+            })
+        );
+    }
 
-            if (!data.features || data.features.length === 0) {
-               this.showEmptyMessage();
+_setupSubscription() {
+    vehicleTrackService.vehicleTrack$
+        .pipe(
+            filter(payload => payload && payload.vehicleId && payload.data),
+            map(payload => this._prepareChartData(payload.data.features)),
+            distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr))
+        )
+        .subscribe((chartData) => {
+            if (!chartData.length) {
+                this.showEmptyMessage();
                 this._destroyChart();
                 return;
             }
 
-            const chartData = this._prepareChartData(data.features);
+            this.fullChartData = chartData;
+            this.playIndex = 0;
             this.hideEmptyMessage();
-            this._renderChart(chartData);
-
+            this._renderChart(this.fullChartData);
         });
+}
+
+    _play() {
+        if (!this.fullChartData || this.fullChartData.length === 0) return;
+
+        this._stop();
+        this.playIndex = 0;
+
+        this.playInterval = setInterval(() => {
+            if (this.playIndex >= this.fullChartData.length) {
+                this._stop();
+                return;
+            }
+
+            const currentData = this.fullChartData[this.playIndex];
+            this._updateCurrentPoint(this.playIndex);
+
+            const mapPoint = this._getMapPointByTimestamp(currentData.timestamp);
+            if (mapPoint) {
+                this.mapService._updateModel(mapPoint);
+            }
+
+            this.playIndex += this.speed;
+        }, 300);
+    }
+
+
+    _stop() {
+        if (this.playInterval) {
+            clearInterval(this.playInterval);
+            this.playInterval = null;
+        }
+        this._updateCurrentPoint(null);
     }
 
     _prepareChartData(features) {
@@ -46,7 +99,8 @@ export class ChartPanel {
             .map(f => ({
                 timestamp: new Date(f.properties.timestamp),
                 speed: f.properties.speed ?? null,
-                altitude: f.properties.altitude ?? null
+                altitude: f.properties.altitude ?? null,
+                waterfall: f.properties.waterfall ?? 'inactive'
             }));
     }
 
@@ -58,23 +112,49 @@ export class ChartPanel {
         const ctx = this.chartCanvas.getContext('2d');
         const dpr = window.devicePixelRatio || 1;
         const rect = this.chartCanvas.getBoundingClientRect();
-        this.chartCanvas.width = rect.width * dpr;
-        this.chartCanvas.height = rect.height * dpr;
-        ctx.scale(dpr, dpr);
 
-        const gradient = ctx.createLinearGradient(0, 0, 0, this.chartCanvas.height);
-        gradient.addColorStop(0, 'rgba(255, 165, 0, 0.5)'); // Orange
-        gradient.addColorStop(1, 'rgba(34, 139, 34, 0.3)'); // Green
+        // Устанавливаем атрибуты width/height
+        this.chartCanvas.width = Math.floor(rect.width * dpr);
+        this.chartCanvas.height = Math.floor(rect.height * dpr);
+
+        // Устанавливаем стили для сохранения физического размера
+        this.chartCanvas.style.width = `${rect.width}px`;
+        this.chartCanvas.style.height = `${rect.height}px`;
+       
+        ctx.scale(dpr, dpr);
 
         const labels = data.map(d => d.timestamp.toLocaleTimeString());
         const altitudes = data.map(d => d.altitude);
         const speeds = data.map(d => d.speed);
+        const waterfallColors = data.map(d =>
+            d.waterfall === 'active' ? 'green' : 'red'
+        );
 
-        const peakIndices = [0, ...altitudes.reduce((acc, val, i, arr) => {
-            if (i > 0 && val > arr[i - 1] && val > (arr[i + 1] || 0)) acc.push(i);
-            return acc;
-        }, [])];
+        const currentPointPlugin = {
+            id: 'currentPointPlugin',
+            afterDatasetsDraw(chart) {
+                const datasetIndex = chart.data.datasets.findIndex(d => d.label === 'Текущая позиция');
+                if (datasetIndex === -1) return;
+                const dataset = chart.getDatasetMeta(datasetIndex);
+                const ctx = chart.ctx;
 
+                dataset.data.forEach((point, i) => {
+                    if (chart.data.datasets[datasetIndex].data[i] !== null) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
+                        ctx.fillStyle = 'red';
+                        ctx.shadowColor = '#fff';
+                        ctx.shadowBlur = 8;
+                        ctx.fill();
+                        ctx.lineWidth = 3;
+                        ctx.strokeStyle = '#fff';
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                });
+            }
+        };
         this.chartInstance = new Chart(this.chartCanvas, {
             type: 'line',
             data: {
@@ -84,47 +164,81 @@ export class ChartPanel {
                         label: 'Высота (м)',
                         data: altitudes,
                         borderColor: 'orange',
-                        backgroundColor: gradient,
+                        backgroundColor: 'rgba(255,165,0,0.2)',
                         fill: true,
                         tension: 0.4,
-                        pointBackgroundColor: (ctx) => peakIndices.includes(ctx.dataIndex) ? 'yellow' : 'transparent',
-                        pointBorderColor: 'orange',
-                        pointRadius: (ctx) => peakIndices.includes(ctx.dataIndex) ? 6 : 0
+                        order: 1
                     },
                     {
                         label: 'Скорость (км/ч)',
                         data: speeds,
                         borderColor: 'blue',
-                        backgroundColor: 'rgba(0, 0, 255, 0.2)',
+                        backgroundColor: 'rgba(0,0,255,0.2)',
                         fill: false,
                         tension: 0.4,
-                        pointRadius: 2,
-                        pointHoverRadius: 4
+                        order: 2
+                    },
+                    {
+                        label: 'Статус waterfall',
+                        data: altitudes,  // Для позиционирования точек по оси Y
+                        pointBackgroundColor: waterfallColors,
+                        pointRadius: 5,
+                        showLine: false,
+                        order: 98
+                    },
+                    // Переносим Текущую позицию В КОНЕЦ
+                    {
+                        label: 'Текущая позиция',
+                        data: new Array(data.length).fill(null),
+                        pointBackgroundColor: 'red',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 1,
+                        pointStyle: 'circle',
+                        showLine: false,
+                        order: 99,
                     }
                 ]
             },
             options: {
                 responsive: true,
-                plugins: {
-                    legend: { display: true }
-                },
+                plugins: { legend: { display: true } },
                 scales: {
                     x: { title: { display: true, text: 'Время' } },
                     y: { title: { display: true, text: 'Значение' } }
-                }
-            }
+                },
+
+            },
+            plugins: [currentPointPlugin]
         });
     }
 
-   showEmptyMessage() {
-    this.chartEmptyMessage.classList.remove('hidden');
-    this.chartCanvas.classList.add('hidden');
-  }
+    _updateCurrentPoint(index) {
+        if (!this.chartInstance) return;
 
-  hideEmptyMessage() {
-    this.chartEmptyMessage.classList.add('hidden');
-    this.chartCanvas.classList.remove('hidden');
-  }
+        const dataset = this.chartInstance.data.datasets.find(d => d.label === 'Текущая позиция');
+        if (!dataset) return;
+
+        dataset.data = this.fullChartData.map((d, i) => (i === index ? d.altitude : null));
+        this.chartInstance.update('none');
+    }
+
+    _getMapPointByTimestamp(timestamp) {
+        if (!this.mapService.trackData) return null;
+        return this.mapService.trackData.find(point =>
+            new Date(point.timestamp).getTime() === timestamp.getTime()
+        );
+    }
+
+    showEmptyMessage() {
+        this.chartEmptyMessage.classList.remove('hidden');
+        this.chartCanvas.classList.add('hidden');
+    }
+
+    hideEmptyMessage() {
+        this.chartEmptyMessage.classList.add('hidden');
+        this.chartCanvas.classList.remove('hidden');
+    }
 
     _destroyChart() {
         if (this.chartInstance) {
@@ -132,7 +246,6 @@ export class ChartPanel {
             this.chartInstance = null;
         }
     }
-
-
-
 }
+
+

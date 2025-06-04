@@ -1,7 +1,7 @@
-import { BehaviorSubject, identity, of, defer } from 'rxjs';
-import { map, catchError, retry, repeat, tap } from 'rxjs/operators';
-import { HttpClientService } from '../../../services/http-client-service.js'; 
-import { loadProgressService } from './../../../services/load-progress.service.js';
+import { BehaviorSubject, defer, of, identity, repeat, retry, catchError, tap } from 'rxjs';
+import { map, } from 'rxjs/operators';
+import { HttpClientService } from '../../../services/http-client-service.js';
+
 export class VehicleService extends HttpClientService {
   constructor(apiUrl, token) {
     super(apiUrl);
@@ -10,13 +10,23 @@ export class VehicleService extends HttpClientService {
   }
 
   getInitialVehicles() {
-    const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date();
+
+    const format = (d) =>
+      `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+    const formattedStart = format(start);
+    const formattedEnd = format(end);
+
     const vehicles = [
-      { id: '24121', name: 'ID:24121', startDateTime: now, endDateTime: now, speed: 4, active: true, color: '#e74c3c' },
-      { id: '22654', name: 'ID:22654', startDateTime: now, endDateTime: now, speed: 4, active: false, color: '#3498db' },
-      { id: '25489', name: 'ID:25489', startDateTime: now, endDateTime: now, speed: 4, active: false, color: '#2ecc71' },
-      { id: '25496', name: 'ID:25496', startDateTime: now, endDateTime: now, speed: 4, active: false, color: '#f39c12' },
-      { id: '24492', name: 'ID:24492', startDateTime: now, endDateTime: now, speed: 4, active: false, color: '#9b59b6' }
+      { id: '24121', name: 'ID:24121', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: true, isRepeat: true, color: '#e74c3c' },
+      { id: '22654', name: 'ID:22654', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#3498db' },
+      { id: '25489', name: 'ID:25489', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#2ecc71' },
+      { id: '25496', name: 'ID:25496', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#f39c12' },
+      { id: '24492', name: 'ID:24492', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#9b59b6' }
     ];
 
     return of(vehicles);
@@ -40,8 +50,8 @@ export class VehicleService extends HttpClientService {
       }),
       retry({ delay: 10000 }),
       isRepeat ? repeat({ delay: 10000 }) : identity,
-      tap(data => this.vehicleTrack$.next({ vehicleId, data }), 
-    )
+      tap(data => this.vehicleTrack$.next({ vehicleId, data }),
+      )
     );
   }
 }
