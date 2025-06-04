@@ -2,7 +2,7 @@ import mapboxgl from 'mapbox-gl';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { vehicleTrackService } from '../components/vehicle-render/services/vehicle-track.service';
 import { loadProgressService } from './../services/load-progress.service.js';
-import { Subject, takeUntil, delay,finalize, distinctUntilChanged, switchMap, filter, map, tap } from 'rxjs';
+import { Subject, takeUntil, delay, finalize, distinctUntilChanged, switchMap, filter, map, tap } from 'rxjs';
 import { ScenegraphLayer } from '@deck.gl/mesh-layers';
 
 export class MapService {
@@ -244,7 +244,7 @@ export class MapService {
         }),
         map(payload => payload.data.features),
         distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
-        tap(() => loadProgressService.hide(9999)) 
+        tap(() => loadProgressService.hide(9999))
       )
       .subscribe(features => {
         if (!features || features.length === 0) {
@@ -523,12 +523,14 @@ export class MapService {
       pickable: true,
       getTooltip: ({ object }) => this._getTooltip(object),
       sizeScale: Math.max(speed / 20, 1),
-      getColor: d =>
-        d.speed == null ? [180, 180, 180] :         // Gray     — Unknown speed
-          d.speed < 1 ? [255, 50, 50] :               // Red      — Nearly stopped
-            d.speed < 5 ? [255, 150, 100] :             // Orange   — Slow
-              d.speed < 20 ? [100, 255, 100] :            // Green    — Normal speed
-                [50, 200, 255],
+      getColor: d => {
+        const speed = d?.speed;
+        if (speed == null || speed === 0) return [180, 180, 180]; 
+        if (speed < 1) return [255, 50, 50];   
+        if (speed < 5) return [255, 150, 100];  
+        if (speed < 20) return [100, 255, 100]; 
+        return [50, 200, 255];                 
+      },
       sizeMinPixels: 0.5,
       sizeMaxPixels: 1.8,
       _lighting: 'pbr',
