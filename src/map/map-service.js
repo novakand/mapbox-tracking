@@ -234,6 +234,7 @@ export class MapService {
         takeUntil(this.destroy$),
         filter(payload => payload && payload.vehicleId && payload.data),
         tap(payload => {
+          this._isRepeat = payload.isRepeat;
           if (payload.isRepeat) {
             this.shouldFitBounds = !this.didFitBoundsInRepeat;
             this.didFitBoundsInRepeat = true;
@@ -402,7 +403,7 @@ export class MapService {
 
         const modelLayer = new ScenegraphLayer({
           id: 'model-layer',
-          data: [this.trackData[0]],
+          data: [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0]],
           scenegraph: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/scenegraph-layer/airplane.glb',
           getPosition: d => [d.coordinates[0], d.coordinates[1], 0],
           getOrientation: d => [0, -d.direct_angle, 90],
@@ -525,11 +526,11 @@ export class MapService {
       sizeScale: Math.max(speed / 20, 1),
       getColor: d => {
         const speed = d?.speed;
-        if (speed == null || speed === 0) return [180, 180, 180]; 
-        if (speed < 1) return [255, 50, 50];   
-        if (speed < 5) return [255, 150, 100];  
-        if (speed < 20) return [100, 255, 100]; 
-        return [50, 200, 255];                 
+        if (speed == null || speed === 0) return [180, 180, 180];
+        if (speed < 1) return [255, 50, 50];
+        if (speed < 5) return [255, 150, 100];
+        if (speed < 20) return [100, 255, 100];
+        return [50, 200, 255];
       },
       sizeMinPixels: 0.5,
       sizeMaxPixels: 1.8,

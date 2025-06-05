@@ -22,12 +22,15 @@ export class VehicleService extends HttpClientService {
     const formattedEnd = format(end);
 
     const vehicles = [
-      { id: '24121', name: 'ID:24121', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: true, isRepeat: true, color: '#e74c3c' },
-      { id: '22654', name: 'ID:22654', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#3498db' },
-      { id: '25489', name: 'ID:25489', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#2ecc71' },
-      { id: '25496', name: 'ID:25496', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#f39c12' },
-      { id: '24492', name: 'ID:24492', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#9b59b6' }
-    ];
+  { id: '22216', name: 'ID:22216', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: true, isRepeat: true, color: '#1abc9c' },  // turquoise
+  { id: '24121', name: 'ID:24121', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false,  isRepeat: true, color: '#e74c3c' },  // alizarin
+  { id: '24488', name: 'ID:24488', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#3498db' },  // peter river
+  { id: '27067', name: 'ID:27067', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#2ecc71' },  // emerald
+  { id: '07322', name: 'ID:07322', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#f39c12' },  // orange
+  { id: '07496', name: 'ID:07496', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#9b59b6' },  // amethyst
+  { id: '07321', name: 'ID:07321', startDateTime: formattedStart, endDateTime: formattedEnd, speed: 4, active: false, isRepeat: true, color: '#34495e' },  // wet asphalt
+];
+
 
     return of(vehicles);
   }
@@ -50,9 +53,9 @@ export class VehicleService extends HttpClientService {
       }),
       retry({ delay: 10000 }),
       isRepeat ? repeat({ delay: 10000 }) : identity,
-      tap(data => this.vehicleTrack$.next({ vehicleId, data,isRepeat }),
+      tap(data => this.vehicleTrack$.next({ vehicleId, data, isRepeat }),
       )
     );
   }
 }
-export const vehicleTrackService = new VehicleService('https://artemis.itmontag.keenetic.pro:4242', '27afb877422133945a0f5241bc649145bd928fa17ca239d23b942850a770cd06');
+export const vehicleTrackService = new VehicleService('https://artemis.itmontag.keenetic.pro', '27afb877422133945a0f5241bc649145bd928fa17ca239d23b942850a770cd06');
