@@ -244,8 +244,8 @@ export class MapService {
           }
         }),
         map(payload => payload.data.features),
+        tap(() => loadProgressService.hide()),
         distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
-        tap(() => loadProgressService.hide(9999))
       )
       .subscribe(features => {
         if (!features || features.length === 0) {
