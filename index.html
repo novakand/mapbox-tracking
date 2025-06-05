@@ -138,14 +138,14 @@
       }
     }
   </style>
-  <script type="module" crossorigin src="/mapbox-tracking/assets/index-Dt1Jo_Q0.js"></script>
-  <link rel="stylesheet" crossorigin href="/mapbox-tracking/assets/index-bRIkPICu.css">
+  <script type="module" crossorigin src="/mapbox-tracking/assets/index-uNfdrH92.js"></script>
+  <link rel="stylesheet" crossorigin href="/mapbox-tracking/assets/index-Aa4nUn0g.css">
 </head>
 
 <body oncontextmenu="return false;">
   <div
     id="app"
-    style="display: flex; height: 100vh; width: 100vw;"
+    style="display: flex; height: 100vh; width: 100vw; overflow: hidden;"
   >
     <div class="preloader">
       <ul class="preloader__dots">
@@ -155,13 +155,17 @@
         <li class="dots-item"></li>
       </ul>
     </div>
+
+    
     <aside class="w-1/4 h-full border-r border-gray-300 overflow-y-auto p-4">
+      <sl-button class="border-0 !left-[500px]">
+<sl-icon name="box-arrow-left" label="Settings"></sl-icon>
+      </sl-button>
       <h2 class="text-lg font-bold mb-4">Транспорт</h2>
       <div
         id="vehicle-list"
         class="flex flex-col gap-4"
       >
-        <!-- Карточки транспорта -->
       </div>
     </aside>
     <div style="flex: 1; width: 75%; position: relative;">
@@ -176,9 +180,6 @@
           value="50"
           style="--height: 4px; display: none !important;"
         ></sl-progress-bar>
-
-
-
 
         <div class="c-map-toolbar-vertical">
           <div class="flex-fill"></div>
