@@ -67,8 +67,8 @@ export class MapService {
 
 
       this.modelPopup = new mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false
+        closeButton: true,
+        closeOnClick: true
       });
 
       this.loadIcons(this.map, this.eventIcons);
@@ -705,14 +705,8 @@ export class MapService {
           this.map.getSource('events-source').setData(iconGeoJSON);
         }
 
-
-        const eventsPopup = new mapboxgl.Popup({
-          closeButton: true,
-          closeOnClick: true
-        });
-
         this.map.on('click', 'events-layer', (e) => {
-          this.map.getCanvas().style.cursor = 'pointer';
+          e.originalEvent.stopPropagation()
           const coordinates = e.features[0].geometry.coordinates.slice();
 
           const props = e.features[0].properties;
@@ -729,7 +723,7 @@ export class MapService {
             }
           }
 
-          eventsPopup
+          this.modelPopup
             .setLngLat(coordinates)
             .setHTML(content)
             .addTo(this.map);
@@ -881,21 +875,6 @@ export class MapService {
 
     this.deckOverlay.setProps({
       layers: [modelLayer],
-      //       onClick: info => {
-      //         if (info.object) {
-      //           const tooltipText = this._getTooltip(info.object)?.text || '';
-      //           const [lng, lat] = info.object.coordinates;
-
-      //           this.modelPopup
-      //             .setLngLat([lng, lat])
-      //             .setHTML(`
-      //   <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
-      // `)
-      //             .addTo(this.map);
-      //         } else {
-      //           this.modelPopup.remove();
-      //         }
-      //       },
       getTooltip: () => null
     });
   }
