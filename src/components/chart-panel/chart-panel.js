@@ -33,7 +33,7 @@ export class ChartPanel {
 
         this.pauseButton.addEventListener('click', () => this._pause());
         this.playButton.addEventListener('click', () => this._play());
-        this.stopButton.addEventListener('click', () => this._stop());
+         this.stopButton.addEventListener('click', () => this._stop());
         this.speedButtons.forEach(btn =>
             btn.addEventListener('click', (e) => {
                 this.speed = parseInt(e.target.dataset.speed, 10) || 1;
