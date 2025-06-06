@@ -88,9 +88,14 @@ export class VehicleList {
 
     this.container.innerHTML = '';
 
-    this.vehicles.forEach(vehicle => {
-      const card = document.createElement('sl-details');
-      card.dataset.id = vehicle.id;
+   this.vehicles.forEach((vehicle, index) => {
+    const card = document.createElement('sl-details');
+    card.dataset.id = vehicle.id;
+
+    // Для первого элемента добавляем атрибут open
+    if (index === 0) {
+      card.setAttribute('open', '');
+    }
 
       card.innerHTML = `
       
