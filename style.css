@@ -126,8 +126,24 @@ sl-drawer::part(overlay) {
     cursor: pointer;
     position: absolute;
     right: 10px;
-    top: 0;
+    top: 20px;
 }
+
+
+.mapboxgl-popup-close-button {
+    width: 32px;           /* ширина кнопки */
+    height: 32px;          /* высота кнопки */
+    top: 8px;              /* отступ от верхнего края попапа */
+    right: 8px;            /* отступ от правого края попапа */
+    padding: 0;            /* убираем внутренние отступы, чтобы не смещать крестик */
+  }
+
+  /* Увеличиваем размер крестика внутри кнопки */
+  .mapboxgl-popup-close-button span {
+    display: inline-block;
+    font-size: 28px;       /* размер символа "×" */
+    line-height: 32px;     /* выравнивание по вертикали внутри кнопки */
+  }
 
 .mapboxgl-popup-close-button:hover {
     background-color: transparent;
@@ -168,7 +184,7 @@ sl-drawer::part(overlay) {
 
 .mapboxgl-popup-content {
   position: relative;
-  padding-top: 1.9em;
+  padding-top: 2.9em;
 }
 
 
