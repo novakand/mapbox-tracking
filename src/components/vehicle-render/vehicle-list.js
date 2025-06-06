@@ -112,10 +112,10 @@ export class VehicleList {
       <div class="field-lng"><strong>Lng:</strong> <span data-field="lng">—</span></div>
     </div>
 
-    <div>
-      <label class="block text-sm mb-1">ONLINE</label>
-      <sl-switch class="w-full" data-id="${vehicle.id}" data-field="isRepeat"></sl-switch>
-    </div>
+    <div class="flex items-center justify-between">
+  <label class="text-sm">ONLINE</label>
+  <sl-switch data-id="${vehicle.id}" data-field="isRepeat"></sl-switch>
+</div>
 
     <div>
       <label class="block text-sm mb-1">Date and time range</label>

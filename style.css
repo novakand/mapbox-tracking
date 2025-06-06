@@ -187,6 +187,11 @@ sl-drawer::part(overlay) {
   padding-top: 2.9em;
 }
 
+sl-details::part(content) {
+  padding: var(--sl-spacing-medium);
+  padding-top: 0;
+}
+
 
 sl-button.map-config-button::part(base) {
     display: block;
