@@ -138,8 +138,8 @@
       }
     }
   </style>
-  <script type="module" crossorigin src="/mapbox-tracking/assets/index-C_mogrAt.js"></script>
-  <link rel="stylesheet" crossorigin href="/mapbox-tracking/assets/index-Aa4nUn0g.css">
+  <script type="module" crossorigin src="/mapbox-tracking/assets/index-BUrkKLNY.js"></script>
+  <link rel="stylesheet" crossorigin href="/mapbox-tracking/assets/index-D9OQ6fBf.css">
 </head>
 
 <body oncontextmenu="return false;">
@@ -161,7 +161,7 @@
       <!-- <sl-button class="border-0 !left-[500px]">
 <sl-icon name="box-arrow-left" label="Settings"></sl-icon>
       </sl-button> -->
-      <h2 class="text-lg font-bold mb-4">Транспорт</h2>
+      <h2 class="text-lg font-bold mb-4">Transport</h2>
       <div
         id="vehicle-list"
         class="flex flex-col gap-4"
@@ -180,6 +180,30 @@
           value="50"
           style="--height: 4px; display: none !important;"
         ></sl-progress-bar>
+
+  <div class="absolute left-4 top-4 bg-white border border-gray-300 p-4 rounded-lg shadow-md text-sm font-sans z-50 max-w-xs">
+  <h3 class="text-base font-semibold mb-2">Track Altitude Legend</h3>
+  <ul class="space-y-2">
+    <li class="flex items-center">
+      <span class="w-4 h-4 rounded-full bg-black border border-gray-500 mr-2"></span>
+      <span>&lt; 200 m — Very low</span>
+    </li>
+    <li class="flex items-center">
+      <span class="w-4 h-4 rounded-full" style="background-color: #800000; border: 1px solid #666; margin-right: 0.5rem;"></span>
+      <span>200–400 m — Low</span>
+    </li>
+    <li class="flex items-center">
+      <span class="w-4 h-4 rounded-full bg-blue-600 border border-gray-500 mr-2"></span>
+      <span>400–600 m — Medium</span>
+    </li>
+    <li class="flex items-center">
+      <span class="w-4 h-4 rounded-full bg-sky-400 border border-gray-500 mr-2"></span>
+      <span>&gt; 600 m — High</span>
+    </li>
+  </ul>
+</div>
+
+
 
         <div class="c-map-toolbar-vertical">
           <div class="flex-fill"></div>
@@ -208,17 +232,38 @@
           id="chartControls"
           class="flex items-center gap-2 p-2"
         >
-          <sl-button
+          <!-- <sl-button
             id="playButton"
             variant="success"
           >
-            <sl-icon name="play-circle"></sl-icon> Старт
-          </sl-button>
+            <sl-icon name="play-circle"></sl-icon> Start
+          </sl-button> -->
 
-          <sl-button
+
+<sl-button variant="default" size="medium" circle>
+  <sl-icon name="play-circle" id="playButton"   label="Settings"></sl-icon>
+</sl-button>
+
+<sl-button variant="default" size="medium" circle>
+  <sl-icon name="pause"  id="pauseButton"  label="Settings"></sl-icon>
+</sl-button>
+
+
+<sl-button variant="default" size="medium" circle>
+  <sl-icon name="stop-circle"  id="stopButton"  label="Settings"></sl-icon>
+</sl-button>
+
+
+<!-- <sl-button
             id="stopButton"
             variant="danger"
-          ><sl-icon name="stop-circle"></sl-icon> Стоп</sl-button>
+          ><sl-icon name="stop-circle"></sl-icon> Stop</sl-button> -->
+
+<!-- <sl-button id="pauseButton" variant="warning">Pause</sl-button> -->
+          <!-- <sl-button
+            id="stopButton"
+            variant="danger"
+          ><sl-icon name="stop-circle"></sl-icon> Stop</sl-button> -->
           <sl-button
             class="speedButton"
             data-speed="1"
@@ -235,21 +280,21 @@
           <sl-switch
             id="toggleRoute"
             checked
-          >Маршрут</sl-switch>
-          <sl-switch id="togglePoint">Промежуточные точки</sl-switch>
-          <sl-switch id="toggleHeading">Направляющие</sl-switch>
+          >Track</sl-switch>
+          <sl-switch id="togglePoint">Waypoints</sl-switch>
+          <!-- <sl-switch id="toggleHeading">Направляющие</sl-switch> -->
         </div>
         <div
           id="chartEmptyMessage"
           class="hidden items-center justify-center h-64 text-gray-500 text-lg"
         >
-          Нет данных для отображения
+         No data to display
         </div>
         <div style="overflow-x: auto; width: 100%;">
-          <canvas
+          <!-- <canvas
             id="chartCanvas"
             class=" block h-64"
-          ></canvas>
+          ></canvas> -->
         </div>
       </div>
     </div>
