@@ -736,7 +736,7 @@ export class MapService {
         this._updateLayerVisibility();
         this._applyLayerOrder(this.layerOrder);
         //console.log('DATA', [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0].coordinates.toString()])
-        //  console.log('DATA', [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0].speed])
+          console.log('DATA', [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0].speed])
         //data: [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0]],
 
 
@@ -752,7 +752,7 @@ export class MapService {
         //    (в вашем случае вы хотите минимум 0.2, или 100, если speed <= 0)
         const computedSpeed = rawSpeed > 0
           ? Math.max(rawSpeed / 20, 0.2)
-          : 100;
+          : 0;
         const modelLayer = new ScenegraphLayer({
           id: 'model-layer',
           data: [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0]],
@@ -774,7 +774,7 @@ export class MapService {
           //     }
           //   }
           // }
-          _animations: { 'current': { speed: computedSpeed } },
+          _animations: { '*': { speed: computedSpeed },loop: true },
           updateTriggers: {
             _animations: computedSpeed
           }
@@ -868,7 +868,7 @@ export class MapService {
     }
     const speed = point?.speed ?? 0;
     const modelLayer = new ScenegraphLayer({
-      id: 'model-layer',
+      id: 'model-layer-update',
       data: [point],
       scenegraph: '/mapbox-tracking/models/test.glb',
       getPosition: d => [d.coordinates[0], d.coordinates[1], 0],
@@ -890,7 +890,7 @@ export class MapService {
       sizeMinPixels: 8,
       sizeMaxPixels: 1.8,
       _lighting: 'pbr',
-      _animations: { 'update': { speed: speed } },
+      _animations: { '*': { speed: speed,loop: true } },
       updateTriggers: {
         _animations: speed
       }
