@@ -22,8 +22,7 @@ mapService.initMap();
 const vehicleManager = new VehicleList('vehicle-list', vehicleTrackService);
 vehicleManager.init();
 
-const progressBar = document.querySelector('sl-progress-bar');
-const chartPanel = new ChartPanel(mapService);
+
 
 loadProgressService.inProgress.subscribe((isLoading) => {
   progressBar.style.display = isLoading ? 'block' : 'none';
@@ -37,5 +36,8 @@ window.addEventListener('load', () => {
     preloader.remove();
   }
 });
+
+const progressBar = document.querySelector('sl-progress-bar');
+const chartPanel = new ChartPanel(mapService);
 
 

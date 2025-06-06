@@ -17,8 +17,8 @@ export class ChartPanel {
         this.speed = 1;
 
         if (!this.chartDrawer || !this.chartCanvas) {
-            console.error('ChartPanel: Не найден sl-drawer или canvas!');
-            return;
+            //   console.error('ChartPanel: Не найден sl-drawer или canvas!');
+            // return;
         }
 
         this._setupControls();
@@ -29,7 +29,9 @@ export class ChartPanel {
         this.playButton = this.chartDrawer.querySelector('#playButton');
         this.stopButton = this.chartDrawer.querySelector('#stopButton');
         this.speedButtons = this.chartDrawer.querySelectorAll('.speedButton');
+        this.pauseButton = this.chartDrawer.querySelector('#pauseButton');
 
+        this.pauseButton.addEventListener('click', () => this._pause());
         this.playButton.addEventListener('click', () => this._play());
         this.stopButton.addEventListener('click', () => this._stop());
         this.speedButtons.forEach(btn =>
@@ -49,23 +51,62 @@ export class ChartPanel {
             )
             .subscribe((chartData) => {
                 if (!chartData.length) {
-                    this.showEmptyMessage();
-                    this._destroyChart();
+                    // this.showEmptyMessage();
+                    // this._destroyChart();
                     return;
                 }
 
                 this.fullChartData = chartData;
                 this.playIndex = 0;
-                this.hideEmptyMessage();
-                this._renderChart(this.fullChartData);
+                // this.hideEmptyMessage();
+                // this._renderChart(this.fullChartData);
+
+                // 🔽 Обновление карточки на основе последнего feature
+                const lastFeature = chartData[chartData.length - 1];
+                const props = lastFeature;
+                const [lng, lat] = lastFeature.coordinates;
+
+
+                const checkbox = document.querySelector(`div[slot="summary"] sl-checkbox[data-id="${props.vehicle_id}"]`);
+                if (!checkbox) return;
+
+                const card = checkbox.closest('.vehicle-card') || checkbox.closest('sl-details');
+                if (!card) return;
+
+                const set = (selector, value) => {
+                    const el = card.querySelector(selector);
+                    if (el) el.textContent = value ?? '—';
+                };
+
+                set('[data-field="id"]', props.vehicle_id);
+                set('[data-field="timestamp"]', this.formatTimestamp(props.timestamp));
+                set('[data-field="lat"]', lat?.toFixed(6));
+                set('[data-field="lng"]', lng?.toFixed(6));
             });
     }
+
+
+    formatTimestamp = (isoString) => {
+        const date = new Date(isoString);
+        return date.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
 
     _play() {
         if (!this.fullChartData || this.fullChartData.length === 0) return;
 
-        this._stop();
-        this.playIndex = 0;
+        if (this.playInterval) {
+            clearInterval(this.playInterval); // защита от двойного запуска
+        }
+
+        if (this.playIndex >= this.fullChartData.length) {
+            this.playIndex = 0; // если дошли до конца, начни сначала
+        }
 
         this.playInterval = setInterval(() => {
             if (this.playIndex >= this.fullChartData.length) {
@@ -81,11 +122,19 @@ export class ChartPanel {
                 this.mapService._updateModel(mapPoint);
             }
 
+            this._updateVehicleCard(currentData, currentData.coordinates);
             this.playIndex += this.speed;
         }, 300);
     }
 
 
+    _pause() {
+        if (this.playInterval) {
+            clearInterval(this.playInterval);
+            this.playInterval = null;
+        }
+        // В отличие от _stop — мы НЕ сбрасываем playIndex и НЕ сбрасываем текущую точку
+    }
     _stop() {
         if (this.playInterval) {
             clearInterval(this.playInterval);
@@ -94,14 +143,47 @@ export class ChartPanel {
         this._updateCurrentPoint(null);
     }
 
+
+    _updateVehicleCard(props, coordinates) {
+        const [lng, lat] = coordinates;
+
+        const checkbox = document.querySelector(`div[slot="summary"] sl-checkbox[data-id="${props.vehicle_id}"]`);
+        if (!checkbox) return;
+
+        const card = checkbox.closest('.vehicle-card') || checkbox.closest('sl-details');
+        if (!card) return;
+
+        const set = (selector, value) => {
+            const el = card.querySelector(selector);
+            if (el) el.textContent = value ?? '—';
+        };
+
+        set('[data-field="id"]', props.vehicle_id);
+        set('[data-field="timestamp"]', this.formatTimestamp(props.timestamp));
+        set('[data-field="lat"]', lat?.toFixed(6));
+        set('[data-field="lng"]', lng?.toFixed(6));
+    }
+
+
     _prepareChartData(features) {
+        // return features
+        //     .filter(f => f.geometry?.type === 'Point' && f.properties?.timestamp)
+        //     .map(f => ({
+        //         timestamp: new Date(f.properties.timestamp),
+        //         speed: f.properties.speed ?? null,
+        //         altitude: f.properties.altitude ?? null,
+        //         waterfall: f.properties.waterfall ?? 'inactive',
+        //     }));
+
         return features
             .filter(f => f.geometry?.type === 'Point' && f.properties?.timestamp)
             .map(f => ({
                 timestamp: new Date(f.properties.timestamp),
                 speed: f.properties.speed ?? null,
                 altitude: f.properties.altitude ?? null,
-                waterfall: f.properties.waterfall ?? 'inactive'
+                waterfall: f.properties.waterfall ?? 'inactive',
+                coordinates: f.geometry.coordinates,
+                vehicle_id: f.properties?.vehicle_id
             }));
     }
 
@@ -181,7 +263,7 @@ export class ChartPanel {
                     },
                     {
                         label: 'Статус waterfall',
-                        data: altitudes, 
+                        data: altitudes,
                         pointBackgroundColor: waterfallColors,
                         pointRadius: 5,
                         showLine: false,

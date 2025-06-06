@@ -93,18 +93,29 @@ export class VehicleList {
       card.dataset.id = vehicle.id;
 
       card.innerHTML = `
+      
   <div slot="summary" class="flex items-center gap-2">
     <sl-checkbox data-id="${vehicle.id}"></sl-checkbox>
     <span>${vehicle.name}</span>
     <span class="inline-block w-3 h-3 rounded-full" style="background-color: ${vehicle.color};"></span>
   </div>
 
-  <div class="p-2 space-y-2">
-    <label class="block text-sm">Отслеживать</label>
-    <sl-switch data-id="${vehicle.id}" data-field="isRepeat"></sl-switch>
+  <div class="p-2 space-y-2 text-xs  pt-2">
+    <div data-id="${vehicle.id}" class="space-y-1">
+      <div class="field-timestamp"><strong>Date time:</strong> <span data-field="timestamp">—</span></div>
+      <div class="field-lat"><strong>Lat:</strong> <span data-field="lat">—</span></div>
+      <div class="field-lng"><strong>Lng:</strong> <span data-field="lng">—</span></div>
+    </div>
 
-    <label class="block text-sm">Диапазон дат и времени</label>
-    <sl-input type="text" data-id="${vehicle.id}" data-field="dateRange"></sl-input>
+    <div>
+      <label class="block text-sm mb-1">ONLINE</label>
+      <sl-switch class="w-full" data-id="${vehicle.id}" data-field="isRepeat"></sl-switch>
+    </div>
+
+    <div>
+      <label class="block text-sm mb-1">Date and time range</label>
+      <sl-input class="w-full" type="text" data-id="${vehicle.id}" data-field="dateRange"></sl-input>
+    </div>
   </div>
 `;
 
@@ -226,7 +237,6 @@ export class VehicleList {
       console.warn('Не указаны даты для загрузки трека');
       return;
     }
-    console.log(activeVehicle, 'activeVehicle')
     this.getTrack$.next({ id, startDateTime, endDateTime, isRepeat });
   }
 
@@ -244,7 +254,7 @@ export class VehicleList {
         mode: "range",
         enableTime: true,
         time_24hr: true,
-        locale: Russian,
+        // locale: Russian,
         dateFormat: 'd.m.Y H:i',
         showMonths: 2,
         defaultDate: [defaultStart, defaultEnd].filter(Boolean), // если есть значения

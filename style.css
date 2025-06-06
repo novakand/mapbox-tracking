@@ -6,7 +6,7 @@ body {
 }
 
 aside {
-    width: 500px;
+    width: 350px;
     padding: 1rem;
 }
 
@@ -119,6 +119,20 @@ sl-drawer::part(overlay) {
     pointer-events: none;
 }
 
+.mapboxgl-popup-close-button {
+    background-color: transparent;
+    border: 0;
+    border-radius: 0 3px 0 0;
+    cursor: pointer;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+}
+
+.mapboxgl-popup-close-button:hover {
+    background-color: transparent;
+}
+
 .c-map__x-offset {
     margin: 0 16px;
 }
@@ -152,8 +166,14 @@ sl-drawer::part(overlay) {
     max-width: 440px !important;
 }
 
- sl-button.map-config-button::part(base) {
-   display: block;
+.mapboxgl-popup-content {
+  position: relative;
+  padding-top: 1.9em;
+}
+
+
+sl-button.map-config-button::part(base) {
+    display: block;
     position: absolute;
     width: 38px;
     height: 38px;
@@ -171,7 +191,7 @@ sl-drawer::part(overlay) {
     overflow: hidden;
     cursor: pointer;
     z-index: 999;
-  }
+}
 
 .map-config-button {
     display: block;
@@ -180,7 +200,7 @@ sl-drawer::part(overlay) {
     height: 38px;
     line-height: 38px;
     color: var(--p-dialog-color);
-   background-color: var(--sl-color-neutral-0);
+    background-color: var(--sl-color-neutral-0);
     text-align: center;
     top: 30px;
     left: 0;

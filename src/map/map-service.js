@@ -4,7 +4,7 @@ import { vehicleTrackService } from '../components/vehicle-render/services/vehic
 import { loadProgressService } from './../services/load-progress.service.js';
 import { Subject, takeUntil, delay, finalize, distinctUntilChanged, switchMap, filter, map, tap } from 'rxjs';
 import { ScenegraphLayer } from '@deck.gl/mesh-layers';
-
+const basePath = import.meta.env.BASE_URL;
 export class MapService {
   constructor(containerId = 'map') {
     this.containerId = containerId;
@@ -14,7 +14,12 @@ export class MapService {
     this.trackData = [];
     this.playIndex = 0;
     this.didFitBoundsInRepeat = false;
-
+    this.eventIcons = [
+      { name: 'reserved', url: `${basePath}icons/reserved.png` },
+      { name: 'landing', url: `${basePath}icons/landing.png` },
+      { name: 'drop', url: `${basePath}icons/drop.png` },
+      { name: 'get', url: `${basePath}icons/get.png` }
+    ]
     mapboxgl.accessToken = 'pk.eyJ1Ijoibm92YWthbmQiLCJhIjoiY2p3OXFlYnYwMDF3eTQxcW5qenZ2eGNoNCJ9.PTZDfrwxfMd-hAwzZjwPTg';
     this.defaultLayerOrder = [
       'track-points-full-layer',
@@ -52,6 +57,7 @@ export class MapService {
         closeOnClick: false
       });
 
+      this.loadIcons(this.map, this.eventIcons);
 
       this.routeVisible = true;
       this.headingVisible = false;
@@ -61,12 +67,12 @@ export class MapService {
       this.toggleHeadingSwitch = document.getElementById('toggleHeading');
       this.togglePointsSwitch = document.getElementById('togglePoint');
 
-      this.toggleRouteSwitch.addEventListener('sl-change', (e) => {
+      this.toggleRouteSwitch?.addEventListener('sl-change', (e) => {
         this.routeVisible = e.target.checked;
         this._updateLayerVisibility();
       });
 
-      this.toggleHeadingSwitch.addEventListener('sl-change', (e) => {
+      this.toggleHeadingSwitch?.addEventListener('sl-change', (e) => {
         this.headingVisible = e.target.checked;
         this._updateLayerVisibility();
       });
@@ -77,6 +83,53 @@ export class MapService {
         this._updateLayerVisibility();
       });
     });
+  }
+
+
+  loadIcon(map, iconName, url, width = 64, height = 64) {
+    return new Promise((resolve, reject) => {
+      if (map.hasImage(iconName)) {
+        resolve();
+        return;
+      }
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = async () => {
+        try {
+          const bitmap = await createImageBitmap(img, {
+            resizeWidth: width,
+            resizeHeight: height,
+            resizeQuality: 'high',
+          });
+
+          map.addImage(iconName, bitmap);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      img.onerror = () => {
+        reject(new Error(`❌ Не удалось загрузить изображение: ${url}`));
+      };
+
+      img.src = url.startsWith('http') ? url : location.origin + url;
+    });
+  }
+
+
+  loadIcons(map, iconsArray) {
+    const promises = iconsArray.map(iconObj =>
+      this.loadIcon(map, iconObj.name, iconObj.url)
+    );
+    return Promise.all(promises)
+      .then(() => {
+      })
+      .catch(error => {
+        console.error('❌ Error:', error);
+        return Promise.reject(error);
+      });
   }
 
   setLayerOrder(newOrder) {
@@ -122,10 +175,10 @@ export class MapService {
         this._hoverListenersAttached = true;
 
         const popup = new mapboxgl.Popup({
-          closeButton: false,
-          closeOnClick: false
+          closeButton: true,
+          closeOnClick: true
         });
-        map.on('mouseenter', 'track-points-full-layer', (e) => {
+        map.on('click', 'track-points-full-layer', (e) => {
 
           map.getCanvas().style.cursor = 'pointer';
 
@@ -144,10 +197,6 @@ export class MapService {
           popup.setLngLat(coordinates).setHTML(content).addTo(map);
         });
 
-        map.on('mouseleave', 'track-points-full-layer', () => {
-          map.getCanvas().style.cursor = '';
-          popup.remove();
-        });
       }
     } catch (err) {
       console.warn(`Failed to add layer ${layerConfig.id}`, err);
@@ -170,6 +219,14 @@ export class MapService {
         console.warn(`Cannot move layer ${currentLayer} before ${layerBelow}`, err);
       }
     }
+  }
+
+
+
+  calcAvgAltitude(a, b) {
+    const altA = a.altitude != null ? a.altitude : 0;
+    const altB = b.altitude != null ? b.altitude : 0;
+    return (altA + altB) / 2;
   }
   _updateLayerVisibility() {
     if (this.map.getLayer('track-path-layer')) {
@@ -200,14 +257,16 @@ export class MapService {
     const layersUsingTrackPoints = [
       'track-points-circles',
       'track-points-labels',
-      'track-points-full-layer'
+      'track-points-full-layer',
+      'events-layer'
     ];
     const layers = ['track-path-layer', 'heading-lines-layer', ...layersUsingTrackPoints];
     const sources = [
       'track-path',
       'heading-lines',
       'track-points',
-      'track-points-full'
+      'track-points-full',
+      'events-source'
     ];
 
 
@@ -280,12 +339,6 @@ export class MapService {
 
         this.playIndex = 0;
 
-        if (this.trackData.length >= 2) {
-          const start = this.trackData[0].coordinates;
-          const end = this.trackData[this.trackData.length - 1].coordinates;
-          this._updateRouteMarkers(start, end);
-        }
-
 
         const geojson = {
           type: 'FeatureCollection',
@@ -301,6 +354,22 @@ export class MapService {
           }))
         };
 
+
+        const segmentFeatures = [];
+        for (let i = 0; i < this.trackData.length - 1; i++) {
+          const currPt = this.trackData[i];
+          const nextPt = this.trackData[i + 1];
+          const avgAlt = this.calcAvgAltitude(currPt, nextPt);
+          segmentFeatures.push({
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: [currPt.coordinates, nextPt.coordinates]
+            },
+            properties: { avgAltitude: avgAlt }
+          });
+        }
+
         const pathData = {
           type: 'Feature',
           geometry: {
@@ -309,21 +378,53 @@ export class MapService {
           }
         };
 
+
+
+        const segmentsGeoJSON = {
+          type: 'FeatureCollection',
+          features: segmentFeatures
+        };
         if (!this.map.getSource('track-path')) {
           this.map.addSource('track-path', {
             type: 'geojson',
-            data: pathData
+            data: segmentsGeoJSON
           });
-
           this.map.addLayer({
             id: 'track-path-layer',
             type: 'line',
             source: 'track-path',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: { 'line-color': '#007bff', 'line-width': 4 }
+            layout: {
+              'line-cap': 'round',
+              'line-join': 'round'
+            },
+            paint: {
+              'line-width': 4,
+              'line-color': [
+                'step',
+                ['get', 'avgAltitude'],
+                '#000000',
+                200, '#800000',
+                400, '#0000FF',
+                600, '#00BFFF',
+                800, '#00BFFF'
+              ]
+            }
           });
         } else {
-          this.map.getSource('track-path').setData(pathData);
+          this.map.getSource('track-path').setData(segmentsGeoJSON);
+          this.map.setPaintProperty(
+            'track-path-layer',
+            'line-color',
+            [
+              'step',
+              ['get', 'avgAltitude'],
+              '#000000',
+              200, '#800000',
+              400, '#0000FF',
+              600, '#00BFFF',
+              800, '#00BFFF'
+            ]
+          );
         }
 
 
@@ -398,52 +499,194 @@ export class MapService {
           this.map.getSource('track-points-full').setData(geojson);
         }
 
+        // const iconFeatures = [];
+
+        // for (let i = 0; i < this.trackData.length; i++) {
+        //   const pt = this.trackData[i];
+        //   const prev = this.trackData[i - 1];
+
+        //   if (pt.fly && pt.fly !== prev?.fly && ['reserved', 'landing'].includes(pt.fly)) {
+        //     iconFeatures.push({
+        //       type: 'Feature',
+        //       geometry: { type: 'Point', coordinates: pt.coordinates },
+        //       properties: { iconName: pt.fly }
+        //     });
+        //   }
+
+        //   if (pt.waterfall === 'inactive' && prev?.waterfall !== 'inactive') {
+        //     iconFeatures.push({
+        //       type: 'Feature',
+        //       geometry: { type: 'Point', coordinates: pt.coordinates },
+        //       properties: { iconName: 'drop' }
+        //     });
+        //   }
+
+        //   if (pt.waterup && pt.waterup !== prev?.waterup) {
+        //     iconFeatures.push({
+        //       type: 'Feature',
+        //       geometry: { type: 'Point', coordinates: pt.coordinates },
+        //       properties: { iconName: 'get',...pt }
+        //     });
+        //   }
+        // }
+
+
+        const iconFeatures = [];
+
+        // Функция для создания маркера (Feature) с копированием всех свойств точки
+        const createIconFeature = (coordinates, iconName, pointData) => {
+          // Копируем все свойства из pointData, кроме geometry-полей (если они есть)
+          const { coordinates: _, ...properties } = pointData; // Исключаем coordinates, чтобы не дублировать
+
+          return {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates },
+            properties: {
+              iconName,
+              ...properties, // Все остальные свойства точки
+            },
+          };
+        };
+
+        let lastFlyStatus = null; // Храним последний статус fly для проверки чередования
+
+        for (let i = 0; i < this.trackData.length; i++) {
+          const pt = this.trackData[i];
+          const prev = this.trackData[i - 1];
+
+          // 1. Обработка статусов полета (reserved → landing → reserved → ...)
+          if (pt.fly && pt.fly !== lastFlyStatus && (pt.fly === 'reserved' || pt.fly === 'landing')) {
+            if (
+              (lastFlyStatus === null && pt.fly === 'reserved') || // Первая точка — взлет
+              (lastFlyStatus === 'reserved' && pt.fly === 'landing') || // После взлета — посадка
+              (lastFlyStatus === 'landing' && pt.fly === 'reserved') // После посадки — снова взлет
+            ) {
+              iconFeatures.push(createIconFeature(pt.coordinates, pt.fly, pt));
+              lastFlyStatus = pt.fly;
+            }
+          }
+
+          // 2. Обработка сброса воды (waterfall: inactive) — только если waterup неактивен
+          if (
+            pt.waterfall === 'inactive' &&
+            prev?.waterfall !== 'inactive' &&
+            (!pt.waterup || pt.waterup === prev?.waterup) // Нет активного waterup
+          ) {
+            iconFeatures.push(createIconFeature(pt.coordinates, 'drop', pt));
+          }
+
+          // 3. Обработка забора воды (waterup) — только если waterfall неактивен
+          if (
+            pt.waterup &&
+            pt.waterup !== prev?.waterup &&
+            pt.waterfall !== 'inactive' // Нет активного waterfall
+          ) {
+            iconFeatures.push(createIconFeature(pt.coordinates, 'get', pt));
+          }
+        }
+        const iconGeoJSON = {
+          type: 'FeatureCollection',
+          features: iconFeatures
+        };
+
+        if (!this.map.getSource('events-source')) {
+          this.map.addSource('events-source', {
+            type: 'geojson',
+            data: iconGeoJSON
+          });
+
+          this.map.addLayer({
+            id: 'events-layer',
+            type: 'symbol',
+            source: 'events-source',
+            layout: {
+              'icon-image': ['get', 'iconName'],
+              'icon-size': 0.5,
+              'icon-allow-overlap': true
+            }
+          });
+        } else {
+          this.map.getSource('events-source').setData(iconGeoJSON);
+        }
+
+
+        const eventsPopup = new mapboxgl.Popup({
+          closeButton: true,
+          closeOnClick: true
+        });
+
+        this.map.on('click', 'events-layer', (e) => {
+          this.map.getCanvas().style.cursor = 'pointer';
+          const coordinates = e.features[0].geometry.coordinates.slice();
+
+          const props = e.features[0].properties;
+
+          const content = Object.entries(props)
+            .filter(([k]) => k !== 'iconName') 
+            .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+            .join('<br>');
+
+
+          if (['mercator', 'equirectangular'].includes(this.map.getProjection().name)) {
+            while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+              coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+            }
+          }
+
+          eventsPopup
+            .setLngLat(coordinates)
+            .setHTML(content)
+            .addTo(this.map);
+        });
+
+
         this._updateLayerVisibility();
         this._applyLayerOrder(this.layerOrder);
 
         const modelLayer = new ScenegraphLayer({
           id: 'model-layer',
           data: [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0]],
-          scenegraph: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/scenegraph-layer/airplane.glb',
+          scenegraph: '/mapbox-tracking/models/test.glb',
           getPosition: d => [d.coordinates[0], d.coordinates[1], 0],
-          getOrientation: d => [0, -d.direct_angle, 90],
+          getOrientation: d => [0, -d.direct_angle + 180, 90],
           getColor: d => (d.suspicious ? [255, 0, 0] : [255, 255, 255]),
           pickable: true,
           getTooltip: ({ object }) => this._getTooltip(object),
-          sizeScale: 10,
-          sizeMinPixels: 0.5,
+          sizeScale: 6,
+          sizeMinPixels: 4,
           sizeMaxPixels: 1.8,
           _lighting: 'pbr',
-          _animations: { '*': { speed: 1 } }
+          _animations: { '*': { speed: 0 } }
         });
 
         this.deckOverlay.setProps({
           layers: [modelLayer],
-          onHover: info => {
-            if (info.object) {
-              const tooltipText = this._getTooltip(info.object)?.text || '';
-              const [lng, lat] = info.object.coordinates;
+//           onClick: info => {
+//             if (info.object) {
+//               const tooltipText = this._getTooltip(info.object)?.text || '';
+//               const [lng, lat] = info.object.coordinates;
 
-              this.modelPopup
-                .setLngLat([lng, lat])
-                .setHTML(`
-  <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
-`)
-                .addTo(this.map);
-            } else {
-              this.modelPopup.remove();
-            }
-          },
+//               this.modelPopup
+//                 .setLngLat([lng, lat])
+//                 .setHTML(`
+//   <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
+// `)
+//                 .addTo(this.map);
+//             } else {
+//               this.modelPopup.remove();
+//             }
+//           },
           getTooltip: () => null
         });
 
-        if (this.shouldFitBounds && this.trackData.length >= 2) {
-          const bounds = this.trackData.reduce(
-            (b, d) => b.extend(d.coordinates),
-            new mapboxgl.LngLatBounds(this.trackData[0].coordinates, this.trackData[0].coordinates)
-          );
-          this.map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 1000 });
-        }
+        // if (this.shouldFitBounds && this.trackData.length >= 2) {
+        const bounds = this.trackData.reduce(
+          (b, d) => b.extend(d.coordinates),
+          new mapboxgl.LngLatBounds(this.trackData[0].coordinates, this.trackData[0].coordinates)
+        );
+        this.map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 1000 });
+        this.shouldFitBounds = false;
+        // }
       });
   }
 
@@ -518,43 +761,50 @@ export class MapService {
     const modelLayer = new ScenegraphLayer({
       id: 'model-layer',
       data: [point],
-      scenegraph: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/scenegraph-layer/airplane.glb',
+      scenegraph: '/mapbox-tracking/models/test.glb',
       getPosition: d => [d.coordinates[0], d.coordinates[1], 0],
-      getOrientation: d => [0, -d.direct_angle, 90],
+      getOrientation: d => [0, -d.direct_angle + 180, 90],
       pickable: true,
       getTooltip: ({ object }) => this._getTooltip(object),
-      sizeScale: Math.max(speed / 20, 1),
+      sizeScale: 6,
+      sizeMinPixels: 4,
+      sizeMaxPixels: 1.8,
       getColor: d => {
         const speed = d?.speed;
-        if (speed == null || speed === 0) return [180, 180, 180];
-        if (speed < 1) return [255, 50, 50];
-        if (speed < 5) return [255, 150, 100];
-        if (speed < 20) return [100, 255, 100];
-        return [50, 200, 255];
+
+        if (speed == null || speed === 0) {
+          return [180, 180, 180];
+        }
+
+        return [255, 255, 255];
       },
-      sizeMinPixels: 0.5,
+      sizeMinPixels: 8,
       sizeMaxPixels: 1.8,
       _lighting: 'pbr',
-      _animations: { '*': { speed: Math.max(speed / 20, 0.2) } }
+      _animations: {
+        '*': {
+          speed: speed > 0 ? Math.max(speed / 20, 0.2) : 0
+        }
+      }
     });
 
     this.deckOverlay.setProps({
       layers: [modelLayer],
-      onHover: info => {
-        if (info.object) {
-          const tooltipText = this._getTooltip(info.object)?.text || '';
-          const [lng, lat] = info.object.coordinates;
+//       onClick: info => {
+//         if (info.object) {
+//           const tooltipText = this._getTooltip(info.object)?.text || '';
+//           const [lng, lat] = info.object.coordinates;
 
-          this.modelPopup
-            .setLngLat([lng, lat])
-            .setHTML(`
-  <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
-`)
-            .addTo(this.map);
-        } else {
-          this.modelPopup.remove();
-        }
-      },
+//           this.modelPopup
+//             .setLngLat([lng, lat])
+//             .setHTML(`
+//   <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
+// `)
+//             .addTo(this.map);
+//         } else {
+//           this.modelPopup.remove();
+//         }
+//       },
       getTooltip: () => null
     });
   }
@@ -570,64 +820,64 @@ export class MapService {
     return (angleDeg + 360) % 360;
   }
 
-  _updateRouteMarkers(start, end) {
-    const geojson = {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: start },
-          properties: { pointType: 'start', label: 'A' }
-        },
-        {
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: end },
-          properties: { pointType: 'end', label: 'B' }
-        }
-      ]
-    };
+  // _updateRouteMarkers(start, end) {
+  //   const geojson = {
+  //     type: 'FeatureCollection',
+  //     features: [
+  //       {
+  //         type: 'Feature',
+  //         geometry: { type: 'Point', coordinates: start },
+  //         properties: { pointType: 'start', label: 'A' }
+  //       },
+  //       {
+  //         type: 'Feature',
+  //         geometry: { type: 'Point', coordinates: end },
+  //         properties: { pointType: 'end', label: 'B' }
+  //       }
+  //     ]
+  //   };
 
-    if (!this.map.getSource('track-points')) {
-      this.map.addSource('track-points', { type: 'geojson', data: geojson });
+  //   if (!this.map.getSource('track-points')) {
+  //     this.map.addSource('track-points', { type: 'geojson', data: geojson });
 
-      this.map.addLayer({
-        id: 'track-points-circles',
-        type: 'circle',
-        source: 'track-points',
-        paint: {
-          'circle-radius': 12,
-          'circle-color': [
-            'match',
-            ['get', 'pointType'],
-            'start', '#00cc66',
-            'end', '#ff3300',
-            '#007bff'
-          ],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff'
-        }
-      });
+  //     this.map.addLayer({
+  //       id: 'track-points-circles',
+  //       type: 'circle',
+  //       source: 'track-points',
+  //       paint: {
+  //         'circle-radius': 12,
+  //         'circle-color': [
+  //           'match',
+  //           ['get', 'pointType'],
+  //           'start', '#00cc66',
+  //           'end', '#ff3300',
+  //           '#007bff'
+  //         ],
+  //         'circle-stroke-width': 2,
+  //         'circle-stroke-color': '#ffffff'
+  //       }
+  //     });
 
-      this.map.addLayer({
-        id: 'track-points-labels',
-        type: 'symbol',
-        source: 'track-points',
-        layout: {
-          'text-field': ['get', 'label'],
-          'text-font': ['Open Sans Bold'],
-          'text-size': 16,
-          'text-anchor': 'center',
-          'text-offset': [0, 0]
-        },
-        paint: {
-          'text-color': '#ffffff'
-        }
-      });
-    } else {
-      this.map.getSource('track-points').setData(geojson);
-    }
+  //     this.map.addLayer({
+  //       id: 'track-points-labels',
+  //       type: 'symbol',
+  //       source: 'track-points',
+  //       layout: {
+  //         'text-field': ['get', 'label'],
+  //         'text-font': ['Open Sans Bold'],
+  //         'text-size': 16,
+  //         'text-anchor': 'center',
+  //         'text-offset': [0, 0]
+  //       },
+  //       paint: {
+  //         'text-color': '#ffffff'
+  //       }
+  //     });
+  //   } else {
+  //     this.map.getSource('track-points').setData(geojson);
+  //   }
 
-  }
+  // }
 
   destroy() {
     this.destroy$.next();
