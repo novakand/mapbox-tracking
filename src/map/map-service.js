@@ -52,6 +52,20 @@ export class MapService {
       this._setupTrackSubscription();
 
 
+      const languageSelect = document.getElementById('languageSelect');
+      if (languageSelect) {
+        // По умолчанию сразу показываем на "en"
+        this.setMapLanguage(this.currentLang);
+
+        // Слушаем смену языка пользователем
+        languageSelect.addEventListener('sl-change', (event) => {
+          const selectedLang = event.target.value; // "en" или "tr"
+          this.currentLang = selectedLang;
+          this.setMapLanguage(selectedLang);
+        });
+      }
+
+
       this.modelPopup = new mapboxgl.Popup({
         closeButton: false,
         closeOnClick: false
@@ -83,8 +97,41 @@ export class MapService {
         this._updateLayerVisibility();
       });
     });
+
+     this.map.on('styledata', () => {
+      this.setMapLanguage(this.currentLang);
+    });
   }
 
+setMapLanguage(lang) {
+    if (!this.map || !this.map.getStyle()) return;
+
+    // Expression с fallback'ами: сначала name_<lang>, если нет — name_en, если нет — name
+    const expr = [
+      'coalesce',
+      ['get', `name_${lang}`],
+      ['get', 'name_en'],
+      ['get', 'name']
+    ];
+
+    const layers = this.map.getStyle().layers;
+    if (!Array.isArray(layers)) return;
+
+    layers.forEach(layer => {
+      if (
+        layer.type === 'symbol' &&
+        typeof layer.id === 'string' &&
+        layer.id.endsWith('-label')
+      ) {
+        try {
+          // Применяем expression
+          this.map.setLayoutProperty(layer.id, 'text-field', expr);
+        } catch (err) {
+          // Иногда некоторые слои-символы не «ощущают» новый text-field — игнорируем
+        }
+      }
+    });
+  }
 
   loadIcon(map, iconName, url, width = 64, height = 64) {
     return new Promise((resolve, reject) => {
@@ -622,7 +669,7 @@ export class MapService {
           const props = e.features[0].properties;
 
           const content = Object.entries(props)
-            .filter(([k]) => k !== 'iconName') 
+            .filter(([k]) => k !== 'iconName')
             .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
             .join('<br>');
 
@@ -661,21 +708,21 @@ export class MapService {
 
         this.deckOverlay.setProps({
           layers: [modelLayer],
-//           onClick: info => {
-//             if (info.object) {
-//               const tooltipText = this._getTooltip(info.object)?.text || '';
-//               const [lng, lat] = info.object.coordinates;
+          //           onClick: info => {
+          //             if (info.object) {
+          //               const tooltipText = this._getTooltip(info.object)?.text || '';
+          //               const [lng, lat] = info.object.coordinates;
 
-//               this.modelPopup
-//                 .setLngLat([lng, lat])
-//                 .setHTML(`
-//   <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
-// `)
-//                 .addTo(this.map);
-//             } else {
-//               this.modelPopup.remove();
-//             }
-//           },
+          //               this.modelPopup
+          //                 .setLngLat([lng, lat])
+          //                 .setHTML(`
+          //   <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
+          // `)
+          //                 .addTo(this.map);
+          //             } else {
+          //               this.modelPopup.remove();
+          //             }
+          //           },
           getTooltip: () => null
         });
 
@@ -790,21 +837,21 @@ export class MapService {
 
     this.deckOverlay.setProps({
       layers: [modelLayer],
-//       onClick: info => {
-//         if (info.object) {
-//           const tooltipText = this._getTooltip(info.object)?.text || '';
-//           const [lng, lat] = info.object.coordinates;
+      //       onClick: info => {
+      //         if (info.object) {
+      //           const tooltipText = this._getTooltip(info.object)?.text || '';
+      //           const [lng, lat] = info.object.coordinates;
 
-//           this.modelPopup
-//             .setLngLat([lng, lat])
-//             .setHTML(`
-//   <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
-// `)
-//             .addTo(this.map);
-//         } else {
-//           this.modelPopup.remove();
-//         }
-//       },
+      //           this.modelPopup
+      //             .setLngLat([lng, lat])
+      //             .setHTML(`
+      //   <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
+      // `)
+      //             .addTo(this.map);
+      //         } else {
+      //           this.modelPopup.remove();
+      //         }
+      //       },
       getTooltip: () => null
     });
   }
