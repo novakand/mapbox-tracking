@@ -51,8 +51,8 @@ export class VehicleService extends HttpClientService {
         console.error('Error loading track:', error);
         return of(null);
       }),
-      retry({ delay: 10000 }),
-      isRepeat ? repeat({ delay: 10000 }) : identity,
+      retry({ delay: 5000 }),
+      isRepeat ? repeat({ delay: 5000 }) : identity,
       tap(data => this.vehicleTrack$.next({ vehicleId, data, isRepeat }),
       )
     );
