@@ -138,7 +138,7 @@
       }
     }
   </style>
-  <script type="module" crossorigin src="/mapbox-tracking/assets/index-BUrkKLNY.js"></script>
+  <script type="module" crossorigin src="/mapbox-tracking/assets/index-BW_wMFIw.js"></script>
   <link rel="stylesheet" crossorigin href="/mapbox-tracking/assets/index-D9OQ6fBf.css">
 </head>
 
@@ -156,7 +156,7 @@
       </ul>
     </div>
 
-    
+
     <aside class="w-1/4 h-full border-r border-gray-300 overflow-y-auto p-4">
       <!-- <sl-button class="border-0 !left-[500px]">
 <sl-icon name="box-arrow-left" label="Settings"></sl-icon>
@@ -181,31 +181,60 @@
           style="--height: 4px; display: none !important;"
         ></sl-progress-bar>
 
-  <div class="absolute left-4 top-4 bg-white border border-gray-300 p-4 rounded-lg shadow-md text-sm font-sans z-50 max-w-xs">
-  <h3 class="text-base font-semibold mb-2">Track Altitude Legend</h3>
-  <ul class="space-y-2">
-    <li class="flex items-center">
-      <span class="w-4 h-4 rounded-full bg-black border border-gray-500 mr-2"></span>
-      <span>&lt; 200 m — Very low</span>
-    </li>
-    <li class="flex items-center">
-      <span class="w-4 h-4 rounded-full" style="background-color: #800000; border: 1px solid #666; margin-right: 0.5rem;"></span>
-      <span>200–400 m — Low</span>
-    </li>
-    <li class="flex items-center">
-      <span class="w-4 h-4 rounded-full bg-blue-600 border border-gray-500 mr-2"></span>
-      <span>400–600 m — Medium</span>
-    </li>
-    <li class="flex items-center">
-      <span class="w-4 h-4 rounded-full bg-sky-400 border border-gray-500 mr-2"></span>
-      <span>&gt; 600 m — High</span>
-    </li>
-  </ul>
-</div>
+        <div
+          class="absolute left-4 top-4 bg-white border border-gray-300 p-4 rounded-lg shadow-md text-sm font-sans z-50 max-w-xs"
+        >
+          <h3 class="text-base font-semibold mb-2">Track Altitude Legend</h3>
+          <ul class="space-y-2">
+            <li class="flex items-center">
+              <span class="w-4 h-4 rounded-full bg-black border border-gray-500 mr-2"></span>
+              <span>&lt; 200 m — Very low</span>
+            </li>
+            <li class="flex items-center">
+              <span
+                class="w-4 h-4 rounded-full"
+                style="background-color: #800000; border: 1px solid #666; margin-right: 0.5rem;"
+              ></span>
+              <span>200–400 m — Low</span>
+            </li>
+            <li class="flex items-center">
+              <span class="w-4 h-4 rounded-full bg-blue-600 border border-gray-500 mr-2"></span>
+              <span>400–600 m — Medium</span>
+            </li>
+            <li class="flex items-center">
+              <span class="w-4 h-4 rounded-full bg-sky-400 border border-gray-500 mr-2"></span>
+              <span>&gt; 600 m — High</span>
+            </li>
+          </ul>
+        </div>
 
+        <div class="c-map-toolbar-horizontal">
+          <div class="c-map__left-offset"></div>
 
+          <div class="flex-fill"></div>
+          <sl-select
+            id="languageSelect"
+            placeholder="English"
+          >
+            <sl-option value="en">English</sl-option>
+            <sl-option value="ar">العربية</sl-option>
+            <sl-option value="zh-Hans">中文 (简体)</sl-option>
+            <sl-option value="zh-Hant">中文 (繁體)</sl-option>
+            <sl-option value="fr">Français</sl-option>
+            <sl-option value="de">Deutsch</sl-option>
+            <sl-option value="it">Italiano</sl-option>
+            <sl-option value="ja">日本語</sl-option>
+            <sl-option value="ko">한국어</sl-option>
+            <sl-option value="pt">Português</sl-option>
+            <sl-option value="ru">Русский</sl-option>
+            <sl-option value="es">Español</sl-option>
+            <sl-option value="vi">Tiếng Việt</sl-option>
+            <sl-option value="tr">Türkçe</sl-option>
+          </sl-select>
+        </div>
 
         <div class="c-map-toolbar-vertical">
+
           <div class="flex-fill"></div>
 
           <div class="c-map__y-offset"></div>
@@ -216,6 +245,7 @@
 
         <div class="c-map-toolbar-vertical !p-4">
           <div class="flex-fill"></div>
+
           <div class="c-map__y-offset"></div>
 
           <div class="c-map__y-offset"></div>
@@ -240,26 +270,50 @@
           </sl-button> -->
 
 
-<sl-button variant="default" size="medium" circle>
-  <sl-icon name="play-circle" id="playButton"   label="Settings"></sl-icon>
-</sl-button>
+          <sl-button
+            variant="default"
+            size="medium"
+            circle
+          >
+            <sl-icon
+              name="play-circle"
+              id="playButton"
+              label="Settings"
+            ></sl-icon>
+          </sl-button>
 
-<sl-button variant="default" size="medium" circle>
-  <sl-icon name="pause"  id="pauseButton"  label="Settings"></sl-icon>
-</sl-button>
+          <sl-button
+            variant="default"
+            size="medium"
+            circle
+          >
+            <sl-icon
+              name="pause"
+              id="pauseButton"
+              label="Settings"
+            ></sl-icon>
+          </sl-button>
 
 
-<sl-button variant="default" size="medium" circle>
-  <sl-icon name="stop-circle"  id="stopButton"  label="Settings"></sl-icon>
-</sl-button>
+          <sl-button
+            variant="default"
+            size="medium"
+            circle
+          >
+            <sl-icon
+              name="stop-circle"
+              id="stopButton"
+              label="Settings"
+            ></sl-icon>
+          </sl-button>
 
 
-<!-- <sl-button
+          <!-- <sl-button
             id="stopButton"
             variant="danger"
           ><sl-icon name="stop-circle"></sl-icon> Stop</sl-button> -->
 
-<!-- <sl-button id="pauseButton" variant="warning">Pause</sl-button> -->
+          <!-- <sl-button id="pauseButton" variant="warning">Pause</sl-button> -->
           <!-- <sl-button
             id="stopButton"
             variant="danger"
@@ -288,7 +342,7 @@
           id="chartEmptyMessage"
           class="hidden items-center justify-center h-64 text-gray-500 text-lg"
         >
-         No data to display
+          No data to display
         </div>
         <div style="overflow-x: auto; width: 100%;">
           <!-- <canvas
