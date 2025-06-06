@@ -736,8 +736,23 @@ export class MapService {
         this._updateLayerVisibility();
         this._applyLayerOrder(this.layerOrder);
         //console.log('DATA', [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0].coordinates.toString()])
-      //  console.log('DATA', [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0].speed])
+        //  console.log('DATA', [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0].speed])
         //data: [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0]],
+
+
+        const idx = this._isRepeat
+          ? this.trackData.length - 1
+          : 0;
+
+        const currentItem = this.trackData[idx] || {};
+        // допустим, currentItem.speed — это число (например, в метрах в секунду)
+        const rawSpeed = currentItem.speed || 0;
+
+        // 2. Приводим к тому виду, каким нам нужно передать в анимацию
+        //    (в вашем случае вы хотите минимум 0.2, или 100, если speed <= 0)
+        const computedSpeed = rawSpeed > 0
+          ? Math.max(rawSpeed / 20, 0.2)
+          : 100;
         const modelLayer = new ScenegraphLayer({
           id: 'model-layer',
           data: [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0]],
@@ -759,7 +774,10 @@ export class MapService {
           //     }
           //   }
           // }
-            _animations: { '*': { speed: this._isRepeat?10:0 } }
+          _animations: { 'current': { speed: computedSpeed } },
+          updateTriggers: {
+            _animations: computedSpeed
+          }
         });
 
         this.deckOverlay.setProps({
@@ -872,11 +890,11 @@ export class MapService {
       sizeMinPixels: 8,
       sizeMaxPixels: 1.8,
       _lighting: 'pbr',
-      _animations: {
-        '*': {
-          speed: speed > 0 ? Math.max(speed / 20, 0.2) : 0
-        }
+      _animations: { 'update': { speed: speed } },
+      updateTriggers: {
+        _animations: speed
       }
+
     });
 
     this.deckOverlay.setProps({
