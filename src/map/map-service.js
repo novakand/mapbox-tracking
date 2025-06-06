@@ -98,12 +98,12 @@ export class MapService {
       });
     });
 
-     this.map.on('styledata', () => {
+    this.map.on('styledata', () => {
       this.setMapLanguage(this.currentLang);
     });
   }
 
-setMapLanguage(lang) {
+  setMapLanguage(lang) {
     if (!this.map || !this.map.getStyle()) return;
 
     // Expression с fallback'ами: сначала name_<lang>, если нет — name_en, если нет — name
@@ -595,7 +595,45 @@ setMapLanguage(lang) {
           };
         };
 
-        let lastFlyStatus = null; // Храним последний статус fly для проверки чередования
+        // let lastFlyStatus = null; // Храним последний статус fly для проверки чередования
+
+        // for (let i = 0; i < this.trackData.length; i++) {
+        //   const pt = this.trackData[i];
+        //   const prev = this.trackData[i - 1];
+
+        //   // 1. Обработка статусов полета (reserved → landing → reserved → ...)
+        //   if (pt.fly && pt.fly !== lastFlyStatus && (pt.fly === 'reserved' || pt.fly === 'landing')) {
+        //     if (
+        //       (lastFlyStatus === null && pt.fly === 'reserved') || // Первая точка — взлет
+        //       (lastFlyStatus === 'reserved' && pt.fly === 'landing') || // После взлета — посадка
+        //       (lastFlyStatus === 'landing' && pt.fly === 'reserved') // После посадки — снова взлет
+        //     ) {
+        //       iconFeatures.push(createIconFeature(pt.coordinates, pt.fly, pt));
+        //       lastFlyStatus = pt.fly;
+        //     }
+        //   }
+
+        //   // 2. Обработка сброса воды (waterfall: inactive) — только если waterup неактивен
+        //   if (
+        //     pt.waterfall === 'inactive' &&
+        //     prev?.waterfall !== 'inactive' &&
+        //     (!pt.waterup || pt.waterup === prev?.waterup) // Нет активного waterup
+        //   ) {
+        //     iconFeatures.push(createIconFeature(pt.coordinates, 'drop', pt));
+        //   }
+
+        //   // 3. Обработка забора воды (waterup) — только если waterfall неактивен
+        //   if (
+        //     pt.waterup &&
+        //     pt.waterup !== prev?.waterup &&
+        //     pt.waterfall !== 'inactive' // Нет активного waterfall
+        //   ) {
+        //     iconFeatures.push(createIconFeature(pt.coordinates, 'get', pt));
+        //   }
+        // }
+
+
+        let lastFlyStatus = null;
 
         for (let i = 0; i < this.trackData.length; i++) {
           const pt = this.trackData[i];
@@ -613,20 +651,20 @@ setMapLanguage(lang) {
             }
           }
 
-          // 2. Обработка сброса воды (waterfall: inactive) — только если waterup неактивен
+          // 2. Обработка сброса воды (waterfall: active) — только если waterup неактивен
           if (
-            pt.waterfall === 'inactive' &&
-            prev?.waterfall !== 'inactive' &&
-            (!pt.waterup || pt.waterup === prev?.waterup) // Нет активного waterup
+            pt.waterfall === 'active' &&          // Только активный waterfall
+            prev?.waterfall !== 'active' &&       // Начало нового активного отрезка
+            (pt.waterup !== 'active')             // waterup неактивен (undefined, 'inactive' или отсутствует)
           ) {
             iconFeatures.push(createIconFeature(pt.coordinates, 'drop', pt));
           }
 
-          // 3. Обработка забора воды (waterup) — только если waterfall неактивен
+          // 3. Обработка забора воды (waterup: active) — только если waterfall неактивен
           if (
-            pt.waterup &&
-            pt.waterup !== prev?.waterup &&
-            pt.waterfall !== 'inactive' // Нет активного waterfall
+            pt.waterup === 'active' &&            // Только активный waterup
+            pt.waterup !== prev?.waterup &&       // Изменение статуса (например, с undefined/inactive на active)
+            pt.waterfall !== 'active'             // waterfall неактивен (undefined, 'inactive' или отсутствует)
           ) {
             iconFeatures.push(createIconFeature(pt.coordinates, 'get', pt));
           }
