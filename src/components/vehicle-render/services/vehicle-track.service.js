@@ -47,9 +47,9 @@ export class VehicleService extends HttpClientService {
       ? new Date().toISOString().split('.')[0] + 'Z'
       : end;
 
-    console.log(
-      `Fetching track for ${vehicleId} from ${start} to ${currentEnd}`
-    );
+    // console.log(
+    //   `Fetching track for ${vehicleId} from ${start} to ${currentEnd}`
+    // );
 
     const params = new URLSearchParams({
       token: this.token,
