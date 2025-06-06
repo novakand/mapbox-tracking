@@ -339,27 +339,27 @@ export class MapService {
         delay(300),
         takeUntil(this.destroy$),
         filter(payload => payload && payload.vehicleId && payload.data),
-       tap(payload => {
-        // 1. Если меняется транспорт (новый vehicleId), сбрасываем флаг didFitBoundsInRepeat
-        if (this.prevVehicleId !== payload.vehicleId) {
-          this.prevVehicleId = payload.vehicleId;
-          this.didFitBoundsInRepeat = false;
-        }
+        tap(payload => {
+          // 1. Если меняется транспорт (новый vehicleId), сбрасываем флаг didFitBoundsInRepeat
+          if (this.prevVehicleId !== payload.vehicleId) {
+            this.prevVehicleId = payload.vehicleId;
+            this.didFitBoundsInRepeat = false;
+          }
 
-        // 2. Запоминаем режим (трекинг или ручной)
-        this._isRepeat = payload.isRepeat;
+          // 2. Запоминаем режим (трекинг или ручной)
+          this._isRepeat = payload.isRepeat;
 
-        if (payload.isRepeat) {
-          // Если пришли данные в режиме "отслеживания",
-          // то подгоняем bounds только первый раз (didFitBoundsInRepeat == false).
-          this.shouldFitBounds = !this.didFitBoundsInRepeat;
-          this.didFitBoundsInRepeat = true;
-        } else {
-          // В ручном режиме — всегда подгоняем bounds ровно один раз
-          this.shouldFitBounds = true;
-          this.didFitBoundsInRepeat = false;
-        }
-      }),
+          if (payload.isRepeat) {
+            // Если пришли данные в режиме "отслеживания",
+            // то подгоняем bounds только первый раз (didFitBoundsInRepeat == false).
+            this.shouldFitBounds = !this.didFitBoundsInRepeat;
+            this.didFitBoundsInRepeat = true;
+          } else {
+            // В ручном режиме — всегда подгоняем bounds ровно один раз
+            this.shouldFitBounds = true;
+            this.didFitBoundsInRepeat = false;
+          }
+        }),
         map(payload => payload.data.features),
         tap(() => loadProgressService.hide()),
         distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
@@ -371,6 +371,9 @@ export class MapService {
           this._clearPreviousLayersAndMarkers();
           return;
         }
+
+        console.log('DATA1', features[features.length - 1].geometry.coordinates.toString())
+        // console.log('2',[this.trackData[this._isRepeat ? this.trackData.length - 1 : 0].coordinates.toString()])
 
         this.trackData = features.map((f, index, arr) => {
           const [lng, lat] = f.geometry.coordinates;
@@ -732,7 +735,9 @@ export class MapService {
 
         this._updateLayerVisibility();
         this._applyLayerOrder(this.layerOrder);
-
+        //console.log('DATA', [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0].coordinates.toString()])
+      //  console.log('DATA', [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0].speed])
+        //data: [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0]],
         const modelLayer = new ScenegraphLayer({
           id: 'model-layer',
           data: [this.trackData[this._isRepeat ? this.trackData.length - 1 : 0]],
@@ -746,14 +751,15 @@ export class MapService {
           sizeMinPixels: 4,
           sizeMaxPixels: 1.8,
           _lighting: 'pbr',
-          _animations: {
-            '*': {
-              speed: d => {
-                if (!d.speed || d.speed <= 0) return 0;
-                return Math.max(d.speed / 20, 0.2);
-              }
-            }
-          }
+          // _animations: {
+          //   '*': {
+          //     speed: d => {
+          //       console.log('Animation data:', d);
+          //       return d?.speed > 0 ? Math.max(d.speed / 20, 0.2) : 100;
+          //     }
+          //   }
+          // }
+            _animations: { '*': { speed: this._isRepeat?10:0 } }
         });
 
         this.deckOverlay.setProps({
@@ -761,17 +767,17 @@ export class MapService {
           getTooltip: () => null
         });
 
-       if (this.shouldFitBounds && this.trackData.length >= 2) {
-        const bounds = this.trackData.reduce(
-          (b, d) => b.extend(d.coordinates),
-          new mapboxgl.LngLatBounds(this.trackData[0].coordinates, this.trackData[0].coordinates)
-        );
-        this.map.fitBounds(bounds, { padding: 200, maxZoom: 15, duration: 1000 });
+        if (this.shouldFitBounds && this.trackData.length >= 2) {
+          const bounds = this.trackData.reduce(
+            (b, d) => b.extend(d.coordinates),
+            new mapboxgl.LngLatBounds(this.trackData[0].coordinates, this.trackData[0].coordinates)
+          );
+          this.map.fitBounds(bounds, { padding: 200, maxZoom: 15, duration: 1000 });
 
-        // После того как сделали fitBounds, больше его не делаем,
-        // пока снова не сбросится флаг (например, при новом payload.vehicleId).
-        this.shouldFitBounds = false;
-      }
+          // После того как сделали fitBounds, больше его не делаем,
+          // пока снова не сбросится флаг (например, при новом payload.vehicleId).
+          this.shouldFitBounds = false;
+        }
       });
   }
 

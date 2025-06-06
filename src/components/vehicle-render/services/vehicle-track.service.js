@@ -35,27 +35,76 @@ export class VehicleService extends HttpClientService {
     return of(vehicles);
   }
 
-  getVehicleTrack(vehicleId, start, end, isRepeat = false) {
+  getVehicleTrack(
+  vehicleId,
+  start,
+  end,
+  isRepeat = false
+) {
+  return defer(() => {
+    // Если isRepeat === true, на каждой итерации формируем "end" как текущее UTC-время без миллисекунд:
+    const currentEnd = isRepeat
+      ? new Date().toISOString().split('.')[0] + 'Z'
+      : end;
+
+    console.log(
+      `Fetching track for ${vehicleId} from ${start} to ${currentEnd}`
+    );
+
     const params = new URLSearchParams({
       token: this.token,
       vehicle_id: vehicleId,
       start,
-      end
+      end: currentEnd,
     });
 
-    return defer(() =>
-      this.get(`/tracking?${params.toString()}`)
-    ).pipe(
-      map(response => response),
-      catchError(error => {
-        console.error('Error loading track:', error);
-        return of(null);
-      }),
-      retry({ delay: 5000 }),
-      isRepeat ? repeat({ delay: 5000 }) : identity,
-      tap(data => this.vehicleTrack$.next({ vehicleId, data, isRepeat }),
-      )
-    );
-  }
+    return this.get(`/tracking?${params.toString()}`);
+  }).pipe(
+    // Тут просто возвращаем ответ без изменений
+    map(response => response),
+
+    // Ловим ошибки, логируем и отдаём null, чтобы поток не “упал” окончательно
+    catchError(error => {
+      console.error('Error loading track:', error);
+      return of(null);
+    }),
+
+    // При ошибке (до catchError) повторяем конкретный запрос через 5 секунд
+    retry({ delay: 5000 }),
+
+    // Если нужно в цикле, каждый 5 секунд заново вызываем defer и формируем новый end
+    isRepeat ? repeat({ delay: 5000 }) : identity,
+
+    // После получения (или null) пушим данные в vehicleTrack$
+    tap(data => {
+      this.vehicleTrack$.next({ vehicleId, data, isRepeat });
+    })
+  );
+}
+
+
+  // getVehicleTrack(vehicleId, start, end, isRepeat = false) {
+  //   console.log(start, end)
+  //   const params = new URLSearchParams({
+  //     token: this.token,
+  //     vehicle_id: vehicleId,
+  //     start,
+  //     end
+  //   });
+
+  //   return defer(() =>
+  //     this.get(`/tracking?${params.toString()}`)
+  //   ).pipe(
+  //     map(response => response),
+  //     catchError(error => {
+  //       console.error('Error loading track:', error);
+  //       return of(null);
+  //     }),
+  //     retry({ delay: 5000 }),
+  //     isRepeat ? repeat({ delay: 5000 }) : identity,
+  //     tap(data => this.vehicleTrack$.next({ vehicleId, data, isRepeat }),
+  //     )
+  //   );
+  // }
 }
 export const vehicleTrackService = new VehicleService('https://artemis.itmontag.keenetic.pro', '27afb877422133945a0f5241bc649145bd928fa17ca239d23b942850a770cd06');
