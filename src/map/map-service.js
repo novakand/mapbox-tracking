@@ -339,16 +339,27 @@ export class MapService {
         delay(300),
         takeUntil(this.destroy$),
         filter(payload => payload && payload.vehicleId && payload.data),
-        tap(payload => {
-          this._isRepeat = payload.isRepeat;
-          if (payload.isRepeat) {
-            this.shouldFitBounds = !this.didFitBoundsInRepeat;
-            this.didFitBoundsInRepeat = true;
-          } else {
-            this.shouldFitBounds = true;
-            this.didFitBoundsInRepeat = false;
-          }
-        }),
+       tap(payload => {
+        // 1. Если меняется транспорт (новый vehicleId), сбрасываем флаг didFitBoundsInRepeat
+        if (this.prevVehicleId !== payload.vehicleId) {
+          this.prevVehicleId = payload.vehicleId;
+          this.didFitBoundsInRepeat = false;
+        }
+
+        // 2. Запоминаем режим (трекинг или ручной)
+        this._isRepeat = payload.isRepeat;
+
+        if (payload.isRepeat) {
+          // Если пришли данные в режиме "отслеживания",
+          // то подгоняем bounds только первый раз (didFitBoundsInRepeat == false).
+          this.shouldFitBounds = !this.didFitBoundsInRepeat;
+          this.didFitBoundsInRepeat = true;
+        } else {
+          // В ручном режиме — всегда подгоняем bounds ровно один раз
+          this.shouldFitBounds = true;
+          this.didFitBoundsInRepeat = false;
+        }
+      }),
         map(payload => payload.data.features),
         tap(() => loadProgressService.hide()),
         distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
@@ -741,37 +752,32 @@ export class MapService {
           sizeMinPixels: 4,
           sizeMaxPixels: 1.8,
           _lighting: 'pbr',
-          _animations: { '*': { speed: 0 } }
+          _animations: {
+            '*': {
+              speed: d => {
+                if (!d.speed || d.speed <= 0) return 0;
+                return Math.max(d.speed / 20, 0.2);
+              }
+            }
+          }
         });
 
         this.deckOverlay.setProps({
           layers: [modelLayer],
-          //           onClick: info => {
-          //             if (info.object) {
-          //               const tooltipText = this._getTooltip(info.object)?.text || '';
-          //               const [lng, lat] = info.object.coordinates;
-
-          //               this.modelPopup
-          //                 .setLngLat([lng, lat])
-          //                 .setHTML(`
-          //   <pre style="margin: 0; max-width: 440px;">${tooltipText}</pre>
-          // `)
-          //                 .addTo(this.map);
-          //             } else {
-          //               this.modelPopup.remove();
-          //             }
-          //           },
           getTooltip: () => null
         });
 
-        // if (this.shouldFitBounds && this.trackData.length >= 2) {
+       if (this.shouldFitBounds && this.trackData.length >= 2) {
         const bounds = this.trackData.reduce(
           (b, d) => b.extend(d.coordinates),
           new mapboxgl.LngLatBounds(this.trackData[0].coordinates, this.trackData[0].coordinates)
         );
         this.map.fitBounds(bounds, { padding: 200, maxZoom: 15, duration: 1000 });
+
+        // После того как сделали fitBounds, больше его не делаем,
+        // пока снова не сбросится флаг (например, при новом payload.vehicleId).
         this.shouldFitBounds = false;
-        // }
+      }
       });
   }
 
