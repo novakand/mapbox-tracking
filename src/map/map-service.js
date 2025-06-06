@@ -769,7 +769,7 @@ export class MapService {
           (b, d) => b.extend(d.coordinates),
           new mapboxgl.LngLatBounds(this.trackData[0].coordinates, this.trackData[0].coordinates)
         );
-        this.map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 1000 });
+        this.map.fitBounds(bounds, { padding: 200, maxZoom: 15, duration: 1000 });
         this.shouldFitBounds = false;
         // }
       });
